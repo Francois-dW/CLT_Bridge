@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CLT_Bridge"
+version = "0.1.0"
+description = "The calculation of a swandwich based deck for a pedestrian bridge"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = ["François de Weck", "LeifErik Stolte", "Henry Schäfer]" 
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Engineers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Physics"
+]
+
+[project.urls]
+Homepage = "https://github.com/Francois-dW/CLT_Bridge.git"
