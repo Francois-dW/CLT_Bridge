@@ -1,6 +1,8 @@
 from code.materials.isotropic import Matrix, Reinforcement, IsotropicMaterial
 from code.materials.composite import Laminate, Lamina
-from code.core.beam import EulerBeam
+# from code.core.beam import EulerBeam
+from code.materials.sandwich import Sandwich
+from code.materials.panel import Panel
 
 def main():
     # 1. Create materials
@@ -42,6 +44,37 @@ def main():
         thickness=0.003  # 3mm total thickness
     )
     
+
+    # 3. Create sandwich & panel
+    sandwich = Sandwich(
+        face_material=laminate,
+        core_material=divinycell,
+        tf=0.001,  # 1mm face thickness
+        tc=0.02    # 20mm core thickness
+    )
+
+    panel = Panel(
+        sandwich=sandwich,
+        width=4.200,  # m
+        length=4.000   # m
+    )
+
+
+    # 4. Perform calculations
+    panel_weight = panel.calculate_weight()
+    print(f"Panel weight: {panel_weight:.4f} N")
+    
+    # Calculate deflection with uniform load, assuming a uniform load of 5000 N/m²
+    uniform_load = 5000 * 9.81 #N/m²
+    panel_deflection = panel.calculate_midlength_deflection_as_beam_uniform_load(load=uniform_load)  # m
+    print(f"Panel midlength deflection: {panel_deflection:.4f} m")
+
+    # Calculate deflection with point load at midlength, assuming a point load of 2000 N without areal distribution
+    point_load = 2000  * 9.81 # N
+    panel_deflection_point = panel.calculate_midlength_deflection_as_beam_point_load(load=point_load)  # m
+    print(f"Panel midlength deflection with point load: {panel_deflection_point:.4f} m")    
+
+
     # # 3. Create bridge
     # my_bridge = Bridge(
     #     spans=3,
