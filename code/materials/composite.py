@@ -28,7 +28,7 @@ class Lamina:
         self.thickness = thickness  # Thickness of the ply in mm
     
 
-    def get_Q12_S12_matrix(self):
+    def get_Q12_matrix(self):
         """
         Build the Q and S matrices that will serve to calculate the stress and strain in the laminate
         in the local coordinate system
@@ -50,22 +50,49 @@ class Lamina:
         ---------
         Q12 : np.array (size 3x3)
             The Q matrix in local coordinate system
-        S12 : np.array (size 3x3)
-            The S matrix in local coordinate system
         """
         Q12 = np.array([
             [self.E1 / (1 - self.nu12 * self.nu21), self.E1 * self.nu21 / (1 - self.nu12 * self.nu21), 0],
             [self.E2 * self.nu12 / (1 - self.nu12 * self.nu21), self.E2 / (1 - self.nu12 * self.nu21), 0],
             [0, 0, self.G12]
         ])
+
+        return Q12
+    
+
+    def get_S12_matrix(self):
+        """
+        Build the Q and S matrices that will serve to calculate the stress and strain in the laminate
+        in the local coordinate system
+
+        Parameters:
+        ------------
+        E1 : float
+            Young's modulus in the fibre direction
+        E2 : float
+            Young's modulus in the transverse direction
+        nu12 : float
+            Poisson's ratio for the 1-2 plane
+        nu21 : float
+            Poisson's ratio for the 2-1 plane
+        G12 : float
+            In-plane shear modulus
+
+        Returns:
+        ---------
+        S12 : np.array (size 3x3)
+            The Q matrix in local coordinate system
+        """
         S12 = np.array([
             [1 / self.E1, -self.nu12 / self.E1, 0],
             [-self.nu21 / self.E2, 1 / self.E2, 0],
             [0, 0, 1 / self.G12]
         ])
-        return Q12, S12
+
+        return S12
+        
     
-    def transform_Q_xy_matrix(self):
+    def transform_Qxy_matrix(self):
         """
         Transform the Q matrix to the global coordinate system of the ply
 
@@ -77,9 +104,9 @@ class Lamina:
         Returns:
         --------
         Q_xy : np.array (size 3x3)
-            The Q matrix in the local coordinate system of the ply
+            The Q matrix in the global coordinate system
         """
-        Q12, _ = self.get_Q12_S12_matrix()
+        Q12 = self.get_Q12_matrix()
         ply_angle_x1 = self.angle  # Angle in degrees
         c = np.cos(np.radians(ply_angle_x1))
         s = np.sin(np.radians(ply_angle_x1))
@@ -88,8 +115,34 @@ class Lamina:
             [s**2, c**2, 2*c*s],
             [-c*s, c*s, c**2 - s**2]
         ])
-        Q_xy = np.dot(np.dot(np.linalg.inv(T), Q12), T)
-        return Q_xy           
+        Qxy = np.dot(np.dot(np.linalg.inv(T), Q12), T)
+        return Qxy
+    
+    def transform_Sxy_matrix(self):
+        """
+        Transform the S matrix to the global coordinate system of the ply
+
+        Parameters:
+        -----------
+        self: Lamina
+            The Lamina object
+
+        Returns:
+        --------
+        S_xy : np.array (size 3x3)
+            The S matrix in the global coordinate system
+        """
+        S12 = self.get_S12_matrix()
+        ply_angle_x1 = self.angle
+        c = np.cos(np.radians(ply_angle_x1))
+        s = np.sin(np.radians(ply_angle_x1))
+        T = np.array([
+            [c**2, s**2, 2*c*s],
+            [s**2, c**2, -2*c*s],
+            [-c*s, c*s, c**2 - s**2]
+        ])
+        Sxy = np.dot(np.dot(np.linalg.inv(T), S12), T)
+        return Sxy
 
 
 class Laminate:
@@ -303,6 +356,7 @@ class Laminate:
             print(f"F2: {F2}")
             print(f"F22: {F22}")
             print(f"F66: {F66}")
+            print(f"total: {F1 + F2 + F11 + F22 + F66 + 2 * F12}")
 
     def __str__(self):
         result = "Laminate Characteristics:\n"
