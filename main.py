@@ -1,6 +1,5 @@
 from code.materials.isotropic import Matrix, Reinforcement, IsotropicMaterial
-from code.materials.composite import Laminate, Lamina
-# from code.core.beam import EulerBeam
+from code.materials.composite import Laminate, Lamina, LaminaMix
 from code.materials.sandwich import Sandwich
 from code.materials.panel import Panel
 
@@ -33,11 +32,13 @@ def main():
 
     
     # 2. Create composite laminate
-    lamina = Lamina(
+    lamina = LaminaMix(
         reinforcement=carbon_fiber,
         matrix=epoxy,
-        thickness=0.001,  # 1mm
-        angle=0  # 0 degrees
+        fiber_volume_ratio=0.6,  # 60% fiber volume fraction
+        fiber_areal_weight=200,  # 200 g/m²
+        # thickness=0.001,  # 1mm
+        # angle=0  # 0 degrees
     )
     laminate = Laminate(
         layers=[lamina, lamina, lamina],  # 3 layers of carbon fiber

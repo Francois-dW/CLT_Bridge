@@ -1,5 +1,5 @@
 import numpy as np
-from isotropic import Matrix, Reinforcement
+from code.materials.isotropic import Matrix, Reinforcement
 
 class Lamina:
     def __init__(self, E1, E2, G12, G23, nu12, nu13, nu23, sigma_1l, sigma_1c, sigma_2t, sigma_2c, sigma_12, thickness= None, G13=None,nu21= None, rho=None, angle=0):
@@ -423,84 +423,84 @@ if __name__ == "__main__":
 
 
 #being worked on the LaminaMix class need to have the strength calculated form values of the matrix and the reinforcement
-# class LaminaMix:
-#     def __init__(self, matrix, reinforcement, fiber_volume_ratio, fiber_areal_weight, orientation=0,
-#                  sigma_lt=0, sigma_tt=0, sigma_cl=0, sigma_ct=0, tau_lt=0):
-#         self.matrix = matrix
-#         self.reinforcement = reinforcement
-#         self.fiber_volume_ratio = fiber_volume_ratio
-#         self.orientation = orientation  # Fiber orientation in degrees
-#         self.fiber_areal_weight = fiber_areal_weight  # Fiber areal weight in g/m2
-#         self.sigma_lt = sigma_lt  # Longitudinal tensile strength in Pa
-#         self.sigma_tt = sigma_tt  # Transverse tensile strength in Pa
-#         self.sigma_ct = sigma_ct  # Transverse compressive strength in Pa
-#         self.sigma_cl = sigma_cl  # Longitudinal compressive strength in Pa
-#         self.tau_lt = tau_lt  # Longitudinal-transverse shear strength in Pa
+class LaminaMix:
+    def __init__(self, matrix: Matrix, reinforcement: Reinforcement, fiber_volume_ratio, fiber_areal_weight, orientation=0,
+                 sigma_lt=0, sigma_tt=0, sigma_cl=0, sigma_ct=0, tau_lt=0):
+        self.matrix = matrix
+        self.reinforcement = reinforcement
+        self.fiber_volume_ratio = fiber_volume_ratio
+        self.orientation = orientation  # Fiber orientation in degrees
+        self.fiber_areal_weight = fiber_areal_weight  # Fiber areal weight in g/m2
+        self.sigma_lt = sigma_lt  # Longitudinal tensile strength in Pa
+        self.sigma_tt = sigma_tt  # Transverse tensile strength in Pa
+        self.sigma_ct = sigma_ct  # Transverse compressive strength in Pa
+        self.sigma_cl = sigma_cl  # Longitudinal compressive strength in Pa
+        self.tau_lt = tau_lt  # Longitudinal-transverse shear strength in Pa
 
-#     def thickness(self):
-#         # Calculate ply thickness from fiber areal weight
-#         matrix_volume_ratio = 1 - self.fiber_volume_ratio
-#         thickness = (self.fiber_areal_weight * 1e-3) / (matrix_volume_ratio * self.reinforcement.rho)
-#         return thickness
+    def thickness(self):
+        # Calculate ply thickness from fiber areal weight
+        matrix_volume_ratio = 1 - self.fiber_volume_ratio
+        thickness = (self.fiber_areal_weight * 1e-3) / (matrix_volume_ratio * self.reinforcement.rho)
+        return thickness
 
-#     def stiffness_matrix(self):
-#         # Calculate the stiffness matrix of the ply
-#         matrix_volume_ratio = 1 - self.fiber_volume_ratio
-#         E_l = (self.fiber_volume_ratio * self.matrix.E) + (matrix_volume_ratio * self.reinforcement.E_l)
-#         E_t = self.matrix.E / (self.fiber_volume_ratio + ((self.matrix.E / self.reinforcement.E_t) * matrix_volume_ratio))
-#         nu_lt = self.reinforcement.nu_lt * matrix_volume_ratio + self.matrix.nu * self.fiber_volume_ratio
-#         nu_tl = nu_lt * (E_t / E_l)
-#         G_lt = self.matrix.G / (self.fiber_volume_ratio + ((self.matrix.G / self.reinforcement.G) * matrix_volume_ratio))
+    def stiffness_matrix(self):
+        # Calculate the stiffness matrix of the ply
+        matrix_volume_ratio = 1 - self.fiber_volume_ratio
+        E_l = (self.fiber_volume_ratio * self.matrix.E) + (matrix_volume_ratio * self.reinforcement.E_l)
+        E_t = self.matrix.E / (self.fiber_volume_ratio + ((self.matrix.E / self.reinforcement.E_t) * matrix_volume_ratio))
+        nu_lt = self.reinforcement.nu_lt * matrix_volume_ratio + self.matrix.nu * self.fiber_volume_ratio
+        nu_tl = nu_lt * (E_t / E_l)
+        G_lt = self.matrix.G / (self.fiber_volume_ratio + ((self.matrix.G / self.reinforcement.G) * matrix_volume_ratio))
 
-#         theta = np.radians(self.orientation)
-#         c = np.cos(theta)
-#         s = np.sin(theta)
+        theta = np.radians(self.orientation)
+        c = np.cos(theta)
+        s = np.sin(theta)
 
-#         S = np.array([[1 / (E_l * 1e-6), -nu_tl / (E_t * 1e-6), 0],
-#                        [-nu_lt / (E_l * 1e-6), 1 / (E_t * 1e-6), 0],
-#                        [0, 0, 1 / (G_lt * 1e-6)]])
-#         Q = np.linalg.inv(S)
+        S = np.array([[1 / (E_l * 1e-6), -nu_tl / (E_t * 1e-6), 0],
+                       [-nu_lt / (E_l * 1e-6), 1 / (E_t * 1e-6), 0],
+                       [0, 0, 1 / (G_lt * 1e-6)]])
+        Q = np.linalg.inv(S)
 
-#         T = np.array([[c**2, s**2, 2 * c * s],
-#                       [s**2, c**2, -2 * c * s],
-#                       [-c * s, c * s, c**2 - s**2]])
-#         T1 = np.array([[c**2, s**2, -2 * c * s],
-#                        [s**2, c**2, 2 * c * s],
-#                        [c * s, -c * s, c**2 - s**2]])
+        T = np.array([[c**2, s**2, 2 * c * s],
+                      [s**2, c**2, -2 * c * s],
+                      [-c * s, c * s, c**2 - s**2]])
+        T1 = np.array([[c**2, s**2, -2 * c * s],
+                       [s**2, c**2, 2 * c * s],
+                       [c * s, -c * s, c**2 - s**2]])
 
-#         TS = np.dot(T.T, S)
-#         T1Q = np.dot(T1, Q)
-#         S_transformed = np.dot(TS, T)
-#         Q_transformed = np.dot(T1Q, T1.T)
+        TS = np.dot(T.T, S)
+        T1Q = np.dot(T1, Q)
+        S_transformed = np.dot(TS, T)
+        Q_transformed = np.dot(T1Q, T1.T)
 
-#         return S, S_transformed, Q, Q_transformed
+        return S, S_transformed, Q, Q_transformed
 
-#     def calculate_Rm(self):
-#         Rm = self.reinforcement.Rm * ((1 - self.fiber_volume_ratio) + ((self.matrix.E / self.reinforcement.E_l) * self.fiber_volume_ratio))
-#         return Rm
+    def calculate_Rm(self):
+        Rm = self.reinforcement.Rm * ((1 - self.fiber_volume_ratio) + ((self.matrix.E / self.reinforcement.E_l) * self.fiber_volume_ratio))
+        return Rm
 
-#     def __str__(self):
-#         thickness = self.thickness()
-#         S, S_transformed, Q, Q_transformed = self.stiffness_matrix()
-#         Rm = self.calculate_Rm()
-#         matrix_volume_ratio = 1 - self.fiber_volume_ratio
-#         E_l = (self.fiber_volume_ratio * self.matrix.E) + (matrix_volume_ratio * self.reinforcement.E_l)
-#         E_t = self.matrix.E / (self.fiber_volume_ratio + ((self.matrix.E / self.reinforcement.E_t) * matrix_volume_ratio))
-#         nu_lt = self.reinforcement.nu_lt * matrix_volume_ratio + self.matrix.nu * self.fiber_volume_ratio
-#         nu_tl = nu_lt * (E_t / E_l)
-#         G_lt = self.matrix.G / (self.fiber_volume_ratio + ((self.matrix.G / self.reinforcement.G) * matrix_volume_ratio))
-#         rho = matrix_volume_ratio * self.reinforcement.rho + self.fiber_volume_ratio * self.matrix.rho
+    def __str__(self):
+        thickness = self.thickness()
+        S, S_transformed, Q, Q_transformed = self.stiffness_matrix()
+        Rm = self.calculate_Rm()
+        matrix_volume_ratio = 1 - self.fiber_volume_ratio
+        E_l = (self.fiber_volume_ratio * self.matrix.E) + (matrix_volume_ratio * self.reinforcement.E_l)
+        E_t = self.matrix.E / (self.fiber_volume_ratio + ((self.matrix.E / self.reinforcement.E_t) * matrix_volume_ratio))
+        nu_lt = self.reinforcement.nu_lt * matrix_volume_ratio + self.matrix.nu * self.fiber_volume_ratio
+        nu_tl = nu_lt * (E_t / E_l)
+        G_lt = self.matrix.G / (self.fiber_volume_ratio + ((self.matrix.G / self.reinforcement.G) * matrix_volume_ratio))
+        rho = matrix_volume_ratio * self.reinforcement.rho + self.fiber_volume_ratio * self.matrix.rho
 
-#         result = "Lamina Characteristics:\n"
-#         result += f"Rm: {Rm * 1e-6:.3f} MPa\n"
-#         result += f"Density: {rho:.3f} g/cm3\n"
-#         result += f"Elastic Moduli: E_l = {E_l * 1e-9:.3f} GPa, E_t = {E_t * 1e-9:.3f} GPa\n"
-#         result += f"Shear Modulus: G_lt = {G_lt * 1e-9:.3f} GPa\n"
-#         result += f"Poisson's Ratios: nu_tl = {nu_tl:.3f}, nu_lt = {nu_lt:.3f}\n"
-#         result += f"Thickness: {thickness:.3f} mm\n"
-#         result += f"\nStiffness Matrix Q:\n{Q}"
-#         result += f"\nTransformed Stiffness Matrix Q_transformed:\n{Q_transformed}"
-#         result += f"\nCompliance Matrix S:\n{S}"
-#         result += f"\nTransformed Compliance Matrix S_transformed:\n{S_transformed}"
+        result = "Lamina Characteristics:\n"
+        result += f"Rm: {Rm * 1e-6:.3f} MPa\n"
+        result += f"Density: {rho:.3f} g/cm3\n"
+        result += f"Elastic Moduli: E_l = {E_l * 1e-9:.3f} GPa, E_t = {E_t * 1e-9:.3f} GPa\n"
+        result += f"Shear Modulus: G_lt = {G_lt * 1e-9:.3f} GPa\n"
+        result += f"Poisson's Ratios: nu_tl = {nu_tl:.3f}, nu_lt = {nu_lt:.3f}\n"
+        result += f"Thickness: {thickness:.3f} mm\n"
+        result += f"\nStiffness Matrix Q:\n{Q}"
+        result += f"\nTransformed Stiffness Matrix Q_transformed:\n{Q_transformed}"
+        result += f"\nCompliance Matrix S:\n{S}"
+        result += f"\nTransformed Compliance Matrix S_transformed:\n{S_transformed}"
 
-#         return result
+        return result
