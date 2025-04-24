@@ -5,37 +5,37 @@ from ..materials.isotropic import IsotropicMaterial
 from ..materials.composite import Laminate, Lamina, LaminaMix
 
 class Sandwich:
-    def __init__(self, Composite: Laminate, Core: IsotropicMaterial, tc = None, tf = None):
+    def __init__(self, composite_material: Laminate, core_material: IsotropicMaterial, tc = None, tf = None):
         """Initializes the Sandwich class with the given composite and core materials.
 
         Parameters:
         ----------
-        Composite: Material
+        composite_material: Material
             The composite material of the sandwich.
-        Core: Material
+        core_material: Material
             The core material of the sandwich.
         tc: float, optional
             Thickness of the core (default is None).
         tf: float, optional
             Thickness of the foam (default is None).
         """
-        self.Composite = Composite
-        self.Core = Core
+        self.composite_material = composite_material
+        self.core_material = core_material
         if tc is None:
-            self.tc = Core.thickness
+            self.tc = core_material.thickness
         else:
             self.tc = tc
         if tf is None:
-            self.tf = Composite.thickness
+            self.tf = composite_material.thickness
         else:
             self.tf = tf
-        if self.Gc is None:
-            self.Gc = Core.E / (2 * (1 + Core.nu))  # Shear modulus of the core
+        if not self.core_material.G:
+            self.Gc = core_material.E / (2 * (1 + core_material.nu))  # Shear modulus of the core
         else:
-            self.Gc = Core.G
+            self.Gc = core_material.G
         self.d = self.tf + self.tc  # distance between the core and the foam
-        self.Ef = Composite.E  # Young's modulus of the foam
-        self.Ec = Core.E  # Young's modulus of the core
+        self.Ef = core_material.E  # Young's modulus of the foam
+        self.Ec = composite_material.E  # Young's modulus of the core
         self.D = self.get_D()  # D value for the sandwich with a soft core
 
 

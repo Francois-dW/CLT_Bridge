@@ -32,6 +32,12 @@ class Lamina:
         self.sigma_shear = sigma_shear # Shear strength in Pa
         self.angle = angle  # Fiber orientation in degrees
         self.thickness = thickness  # Thickness of the ply in mm
+        self.Q12 = self.get_Q12_matrix()  # Stiffness matrix in local coordinate system
+        self.S12 = self.get_S12_matrix()  # Compliance matrix in local coordinate system
+        self.Qxy = self.transform_Qxy_matrix()  # Stiffness matrix in global coordinate system
+        self.Sxy = self.transform_Sxy_matrix()  # Compliance matrix in global coordinate system
+        
+
     
 
     def get_Q12_matrix(self):
@@ -152,7 +158,7 @@ class Lamina:
 
 
 class Laminate:
-    def __init__(self, plies, total_thickness=None, ply_thicknesses=None):
+    def __init__(self, plies, total_thickness=None, ply_thicknesses=None, density=None):
         """
         Initializes the Laminate class with the given plies.
 
@@ -161,41 +167,55 @@ class Laminate:
         plies: array of Lamina objects
             The plies that make up the laminate.
         total_thickness: float, optional
-            The total thickness of the laminate (default is None).
+            The total total_thickness of the laminate (default is None).
         ply_thicknesses: array of floats, optional
             The thicknesses of each ply (default is None).
         
         """
         self.plies = plies
         self.n_plies = len(plies)
+               
 
         # Check if individual ply thicknesses are defined in Lamina objects
         if all(ply.thickness is not None for ply in plies):
             # Use the thicknesses defined in each Lamina object
-            self.thickness = sum(ply.thickness for ply in plies)
-            self.thicknesses = np.array([ply.thickness for ply in self.plies])
+            self.total_thickness = sum(ply.total_thickness for ply in plies)
+            self.ply_thicknesses = np.array([ply.total_thickness for ply in self.plies])
         elif total_thickness is not None:
             # Use the provided total_thickness and divide it equally among the plies
-            self.thickness = total_thickness
+            self.total_thickness = total_thickness
             if ply_thicknesses is None:
-                #If not given, calculate the thickness of each ply
+                #If not given, calculate the total_thickness of each ply
                 ply_thickness = total_thickness / self.n_plies
                 for ply in self.plies:
                     ply.thickness = ply_thickness
             else:
-                #If given, assign the thickness to each ply
+                #If given, assign the total_thickness to each ply
                 if len(ply_thicknesses) != self.n_plies:
                     raise ValueError("The length of ply_thicknesses must be equal to the number of plies.")
                 for i, ply in enumerate(self.plies):
                     ply.thickness = ply_thicknesses[i]
         else:
             raise ValueError("Either individual ply thicknesses must be defined in Lamina objects or total_thickness must be provided.")
+        
+        ABD, inv_ABD = self.calculate_ABD_matrix()
+        self.A = ABD[:3, :3]
+        self.B = ABD[:3, 3:]
+        self.D = ABD[3:, 3:]
+        self.inv_ABD = inv_ABD
+        self.E = self.get_equivalent_elasticity()
+        if density is None:
+            self.rho = self.get_equivalent_density()
+        else:
+            self.rho = density
+        
+        
 
     def calculate_height_list(self):
         total_thickness = 0
         ply_thicknesses = []
         for ply in self.plies:
-            thickness = ply.thickness()
+            thickness = ply.thickness
             ply_thicknesses.append(thickness)
             total_thickness += thickness
 
@@ -222,10 +242,10 @@ class Laminate:
 
         z_index = 1
         for ply in self.plies:
-            Q_transformed = ply.stiffness_matrix()[3]
-            A += (height_list[z_index] - height_list[z_index - 1]) * Q_transformed  # [A] = N/mm
-            B += 0.5 * ((height_list[z_index]**2) - (height_list[z_index - 1]**2)) * Q_transformed  # [B] = N
-            D += (1/3) * ((height_list[z_index]**3) - (height_list[z_index - 1]**3)) * Q_transformed  # [D] = Nmm
+            Qxy = ply.Qxy
+            A += (height_list[z_index] - height_list[z_index - 1]) * Qxy  # [A] = N/mm
+            B += 0.5 * ((height_list[z_index]**2) - (height_list[z_index - 1]**2)) * Qxy  # [B] = N
+            D += (1/3) * ((height_list[z_index]**3) - (height_list[z_index - 1]**3)) * Qxy  # [D] = Nmm
             z_index += 1
 
         return A, B, D
@@ -257,14 +277,14 @@ class Laminate:
             T = np.array([[c**2, s**2, 2 * c * s],
                           [s**2, c**2, -2 * c * s],
                           [-c * s, c * s, c**2 - s**2]])
-            Q_transformed = ply.stiffness_matrix()[3]
+            Qxy = ply.stiffness_matrix()[3]
             strain_top = strain[0:3] + strain[3:6] * height_list[z_index - 1]
             strain_mid = strain[0:3] + strain[3:6] * ((height_list[z_index - 1] + height_list[z_index]) / 2)
             strain_bot = strain[0:3] + strain[3:6] * height_list[z_index]
 
-            stress_top_max = np.dot(Q_transformed, strain_top)
-            stress_mid_max = np.dot(Q_transformed, strain_mid)
-            stress_bot_max = np.dot(Q_transformed, strain_bot)
+            stress_top_max = np.dot(Qxy, strain_top)
+            stress_mid_max = np.dot(Qxy, strain_mid)
+            stress_bot_max = np.dot(Qxy, strain_bot)
 
             stress_top = np.dot(T, stress_top_max)
             stress_mid = np.dot(T, stress_mid_max)
@@ -298,15 +318,15 @@ class Laminate:
 
         z_index = 1
         for ply in self.plies:
-            Q_transformed = ply.stiffness_matrix()[3]
+            Qxy = ply.stiffness_matrix()[3]
 
             strain_top = strain[0:3] + (strain[3:6] * height_list[z_index - 1])
             strain_mid = strain[0:3] + (strain[3:6] * ((height_list[z_index - 1] + height_list[z_index]) / 2))
             strain_bot = strain[0:3] + (strain[3:6] * height_list[z_index])
 
-            stress_top_max = np.dot(Q_transformed, strain_top)
-            stress_mid_max = np.dot(Q_transformed, strain_mid)
-            stress_bot_max = np.dot(Q_transformed, strain_bot)
+            stress_top_max = np.dot(Qxy, strain_top)
+            stress_mid_max = np.dot(Qxy, strain_mid)
+            stress_bot_max = np.dot(Qxy, strain_bot)
 
             stresses_mid[z_index - 1] = stress_mid_max
             stresses_top[z_index - 1] = stress_top_max
@@ -364,9 +384,11 @@ class Laminate:
             print(f"F66: {F66}")
             print(f"total: {F1 + F2 + F11 + F22 + F66 + 2 * F12}")
 
+    
+
     def __str__(self):
         result = "Laminate Characteristics:\n"
-        result += f"Total Thickness: {self.thickness():.3f} mm\n"
+        result += f"Total Thickness: {self.total_thickness():.3f} mm\n"
         A, B, D = self.calculate_A_B_D_matrices()
         ABD, inv_ABD = self.calculate_ABD_matrix()
         result += f"\nMatrix A:\n{A}"
@@ -375,6 +397,51 @@ class Laminate:
         result += f"\nABD Matrix:\n{ABD}"
         result += f"\nInverse ABD Matrix:\n{inv_ABD}"
         return result
+    
+    def get_equivalent_elasticity(self):
+        """
+        Calculate the equivalent elasticity modulus of a laminate at each node.
+
+        Parameters:
+        -----------
+        A : np.array (size x3x3)
+            The ABD stiffness matrix for each node in the laminate.
+        self.tot_height : np.array (size N)
+            The laminate total_thickness at each node.
+
+        Returns:
+        --------
+        E_laminate : np.array (size N)
+            The equivalent elasticity modulus of the laminate at each node.
+        """
+        A = self.A
+        E_laminate = (1/self.total_thickness) * (( 2* A[0, 2] * A[0, 1] * A[1, 2] - A[0, 2]**2 * A[1, 1] - A[0, 1]**2 * A[2, 2] + A[0, 0] * (A[1, 1] * A[2, 2] - A[1, 2]**2)) / (A[1, 1] * A[2, 2] - A[1, 2]**2))
+
+        return E_laminate
+    
+    def get_equivalent_density(self):
+        """
+        Calculate the equivalent density of a laminate at each node.
+
+        Parameters:
+        -----------
+        plies : list of Lamina objects
+            The plies that make up the laminate.
+
+        self.tot_height : np.array (size N)
+            The laminate total_thickness at each node.
+
+        Returns:
+        --------
+        rho_laminate : float
+        """
+        rho_laminate = 0
+        for ply in self.plies:
+            ply_density = ply.rho
+            ply_thickness = ply.thickness
+            rho_laminate += ply_density * ply_thickness
+        rho_laminate /= self.total_thickness
+        return rho_laminate
 
 class Stress:
     def __init__(self, Nx=0, Ny=0, Nxy=0, Mx=0, My=0, Mxy=0):
@@ -416,9 +483,9 @@ if __name__ == "__main__":
 
     # Print stiffness matrix for verification
     print("Stiffness Matrix Q and Transformed Q:")
-    S, S_transformed, Q, Q_transformed = ply.stiffness_matrix()
+    S, Sxy, Q, Qxy = ply.stiffness_matrix()
     print("Q:\n", Q)
-    print("Q_transformed:\n", Q_transformed)
+    print("Qxy:\n", Qxy)
 
     # Calculate and print stresses
     laminate.print_stresses(stresses)
@@ -442,8 +509,16 @@ class LaminaMix:
         self.sigma_ct = sigma_ct  # Transverse compressive strength in Pa
         self.sigma_cl = sigma_cl  # Longitudinal compressive strength in Pa
         self.tau_lt = tau_lt  # Longitudinal-transverse shear strength in Pa
+        self.thickness = self.get_ply_thickness()  # Calculate ply thickness
+        self.Rm = self.calculate_Rm()  # Calculate tensile strength
+        S12, Sxy, Q12, Qxy = self.stiffness_matrix()  # Calculate stiffness matrix
+        self.S12 = S12  # Compliance matrix
+        self.Sxy = Sxy  # Transformed compliance matrix
+        self.Q12 = Q12  # Stiffness matrix
+        self.Qxy = Qxy  # Transformed stiffness matrix
 
-    def thickness(self):
+
+    def get_ply_thickness(self):
         # Calculate ply thickness from fiber areal weight
         matrix_volume_ratio = 1 - self.fiber_volume_ratio
         thickness = (self.fiber_areal_weight * 1e-3) / (matrix_volume_ratio * self.reinforcement.rho)
@@ -476,18 +551,18 @@ class LaminaMix:
 
         TS = np.dot(T.T, S)
         T1Q = np.dot(T1, Q)
-        S_transformed = np.dot(TS, T)
-        Q_transformed = np.dot(T1Q, T1.T)
+        Sxy = np.dot(TS, T)
+        Qxy = np.dot(T1Q, T1.T)
 
-        return S, S_transformed, Q, Q_transformed
+        return S, Sxy, Q, Qxy
 
     def calculate_Rm(self):
         Rm = self.reinforcement.Rm * ((1 - self.fiber_volume_ratio) + ((self.matrix.E / self.reinforcement.E_l) * self.fiber_volume_ratio))
         return Rm
 
     def __str__(self):
-        thickness = self.thickness()
-        S, S_transformed, Q, Q_transformed = self.stiffness_matrix()
+        thickness = self.thickness
+        S, Sxy, Q, Qxy = self.stiffness_matrix()
         Rm = self.calculate_Rm()
         matrix_volume_ratio = 1 - self.fiber_volume_ratio
         E_l = (self.fiber_volume_ratio * self.matrix.E) + (matrix_volume_ratio * self.reinforcement.E_l)
@@ -505,8 +580,8 @@ class LaminaMix:
         result += f"Poisson's Ratios: nu_tl = {nu_tl:.3f}, nu_lt = {nu_lt:.3f}\n"
         result += f"Thickness: {thickness:.3f} mm\n"
         result += f"\nStiffness Matrix Q:\n{Q}"
-        result += f"\nTransformed Stiffness Matrix Q_transformed:\n{Q_transformed}"
+        result += f"\nTransformed Stiffness Matrix Qxy:\n{Qxy}"
         result += f"\nCompliance Matrix S:\n{S}"
-        result += f"\nTransformed Compliance Matrix S_transformed:\n{S_transformed}"
+        result += f"\nTransformed Compliance Matrix Sxy:\n{Sxy}"
 
         return result

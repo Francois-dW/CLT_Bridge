@@ -48,14 +48,15 @@ def main():
         angle=90,  # degrees    
     )
     laminate = Laminate(
-        plies=[lamina0, lamina90, lamina90, lamina0],  # 3 layers of carbon fiber
-        ply_thicknesses=0.003  # 3mm total thickness
+        plies=[lamina0, lamina90, lamina90, lamina0],  # 4 layers of carbon fiber
+        total_thickness=0.003,  # 30mm total thickness
+        density=1900,  # kg/m^3
     )
     
 
     # 3. Create sandwich & panel
     sandwich = Sandwich(
-        face_material=laminate,
+        composite_material=laminate,
         core_material=divinycell,
         tf=0.001,  # 1mm face thickness
         tc=0.02    # 20mm core thickness
@@ -74,13 +75,19 @@ def main():
     
     # Calculate deflection with uniform load, assuming a uniform load of 5000 N/m²
     uniform_load = 5000 * 9.81 #N/m²
-    panel_deflection = panel.calculate_midlength_deflection_as_beam_uniform_load(load=uniform_load)  # m
-    print(f"Panel midlength deflection: {panel_deflection:.4f} m")
+    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_uniform_load(load=uniform_load)  # m
+    print(f"Panel midlength deflection with uniform load: {delta_max:.4f} m")
+    print(f"Panel max shear force with uniform load: {max_shear_force:.4f} N")
+    print(f"Panel max bending moment with uniform load: {max_bending_moment:.4f} Nm")
 
     # Calculate deflection with point load at midlength, assuming a point load of 2000 N without areal distribution
     point_load = 2000  * 9.81 # N
-    panel_deflection_point = panel.calculate_midlength_deflection_as_beam_point_load(load=point_load)  # m
-    print(f"Panel midlength deflection with point load: {panel_deflection_point:.4f} m")    
+    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_point_load(load=point_load)  # m
+    print(f"Panel midlength deflection with point load: {delta_max:.4f} m")
+    print(f"Panel max shear force with point load: {max_shear_force:.4f} N")
+    print(f"Panel max bending moment with point load: {max_bending_moment:.4f} Nm")   
+
+
 
 
     # # 3. Create bridge
