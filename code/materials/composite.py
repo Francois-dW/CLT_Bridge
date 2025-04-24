@@ -2,7 +2,7 @@ import numpy as np
 from code.materials.isotropic import Matrix, Reinforcement
 
 class Lamina:
-    def __init__(self, E1, E2, G12, G23, nu12, nu13, nu23, sigma_1l, sigma_1c, sigma_2t, sigma_2c, sigma_12, thickness= None, G13=None,nu21= None, rho=None, angle=0):
+    def __init__(self, E1, E2, G12, G23, nu12,  sigma_1t, sigma_1c, sigma_2t, sigma_2c, sigma_shear, nu13=None, nu23=None, thickness=None, G13=None,nu21= None, rho=None, angle=0):
         self.E1 = E1
         self.E2 = E2
         self.G12 = G12
@@ -12,18 +12,24 @@ class Lamina:
             self.G13 = G13
         self.G23 = G23
         self.nu12 = nu12
+        if nu23 is None:
+            self.nu23 = nu12 
+        else:
+            self.nu23 = nu23
+        if nu13 is None:
+            self.nu13 = nu12 
+        else:
+            self.nu13 = nu13
         if nu21 is None:
-            self.nu21 = nu12 * E2 / E1
+            self.nu21 = nu12
         else:
             self.nu21 = nu21
-        self.nu13 = nu13
-        self.nu23 = nu23
         self.rho = rho
-        self.sigma_1l = sigma_1l
-        self.sigma_1c = sigma_1c
-        self.sigma_2t = sigma_2t
-        self.sigma_2c = sigma_2c
-        self.sigma_12 = sigma_12
+        self.sigma_1t = sigma_1t # Longitudinal tensile strength in Pa
+        self.sigma_1c = sigma_1c # Longitudinal compressive strength in Pa
+        self.sigma_2t = sigma_2t # Transverse tensile strength in Pa
+        self.sigma_2c = sigma_2c # Transverse compressive strength in Pa
+        self.sigma_shear = sigma_shear # Shear strength in Pa
         self.angle = angle  # Fiber orientation in degrees
         self.thickness = thickness  # Thickness of the ply in mm
     

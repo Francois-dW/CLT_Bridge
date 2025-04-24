@@ -5,22 +5,6 @@ from code.materials.panel import Panel
 
 def main():
     # 1. Create materials
-    carbon_fiber = Reinforcement(
-        E_l=230e9,  # Pa
-        E_t=15e9,   # Pa
-        G=30e9,     # Pa
-        nu_lt=0.2,
-        nu_tl=0.3,
-        rho=1.6,    # g/cm^3
-        Rm=4e9      # Pa
-    )
-    epoxy = Matrix(
-        E=3e9,      # Pa
-        G=1.2e9,    # Pa
-        nu=0.35,
-        rho=1.2,    # g/cm^3
-        Rm=80e6     # Pa
-    )
 
     divinycell = IsotropicMaterial(
         E=2.5e9,    # Pa
@@ -32,17 +16,40 @@ def main():
 
     
     # 2. Create composite laminate
-    lamina = LaminaMix(
-        reinforcement=carbon_fiber,
-        matrix=epoxy,
-        fiber_volume_ratio=0.6,  # 60% fiber volume fraction
-        fiber_areal_weight=200,  # 200 g/m²
-        # thickness=0.001,  # 1mm
-        # angle=0  # 0 degrees
+    lamina0 = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1.6,    # g/cm^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=50e6,  # Pa
+        angle=0,  # degrees    
+    )
+
+    lamina90 = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1.6,    # g/cm^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=50e6,  # Pa
+        angle=90,  # degrees    
     )
     laminate = Laminate(
-        layers=[lamina, lamina, lamina],  # 3 layers of carbon fiber
-        thickness=0.003  # 3mm total thickness
+        plies=[lamina0, lamina90, lamina90, lamina0],  # 3 layers of carbon fiber
+        ply_thicknesses=0.003  # 3mm total thickness
     )
     
 
