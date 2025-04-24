@@ -1,27 +1,10 @@
 from code.materials.isotropic import Matrix, Reinforcement, IsotropicMaterial
-from code.materials.composite import Laminate, Lamina
-# from code.core.beam import EulerBeam
+from code.materials.composite import Laminate, Lamina, LaminaMix
 from code.materials.sandwich import Sandwich
 from code.materials.panel import Panel
 
 def main():
     # 1. Create materials
-    carbon_fiber = Reinforcement(
-        E_l=230e9,  # Pa
-        E_t=15e9,   # Pa
-        G=30e9,     # Pa
-        nu_lt=0.2,
-        nu_tl=0.3,
-        rho=1.6,    # g/cm^3
-        Rm=4e9      # Pa
-    )
-    epoxy = Matrix(
-        E=3e9,      # Pa
-        G=1.2e9,    # Pa
-        nu=0.35,
-        rho=1.2,    # g/cm^3
-        Rm=80e6     # Pa
-    )
 
     divinycell = IsotropicMaterial(
         E=2.5e9,    # Pa
@@ -33,21 +16,47 @@ def main():
 
     
     # 2. Create composite laminate
-    lamina = Lamina(
-        reinforcement=carbon_fiber,
-        matrix=epoxy,
-        thickness=0.001,  # 1mm
-        angle=0  # 0 degrees
+    lamina0 = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1.6,    # g/cm^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=50e6,  # Pa
+        angle=0,  # degrees    
+    )
+
+    lamina90 = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1.6,    # g/cm^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=50e6,  # Pa
+        angle=90,  # degrees    
     )
     laminate = Laminate(
-        layers=[lamina, lamina, lamina],  # 3 layers of carbon fiber
-        thickness=0.003  # 3mm total thickness
+        plies=[lamina0, lamina90, lamina90, lamina0],  # 4 layers of carbon fiber
+        total_thickness=0.003,  # 30mm total thickness
+        density=1900,  # kg/m^3
     )
     
 
     # 3. Create sandwich & panel
     sandwich = Sandwich(
-        face_material=laminate,
+        composite_material=laminate,
         core_material=divinycell,
         tf=0.001,  # 1mm face thickness
         tc=0.02    # 20mm core thickness
@@ -66,13 +75,19 @@ def main():
     
     # Calculate deflection with uniform load, assuming a uniform load of 5000 N/m²
     uniform_load = 5000 * 9.81 #N/m²
-    panel_deflection = panel.calculate_midlength_deflection_as_beam_uniform_load(load=uniform_load)  # m
-    print(f"Panel midlength deflection: {panel_deflection:.4f} m")
+    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_uniform_load(load=uniform_load)  # m
+    print(f"Panel midlength deflection with uniform load: {delta_max:.4f} m")
+    print(f"Panel max shear force with uniform load: {max_shear_force:.4f} N")
+    print(f"Panel max bending moment with uniform load: {max_bending_moment:.4f} Nm")
 
     # Calculate deflection with point load at midlength, assuming a point load of 2000 N without areal distribution
     point_load = 2000  * 9.81 # N
-    panel_deflection_point = panel.calculate_midlength_deflection_as_beam_point_load(load=point_load)  # m
-    print(f"Panel midlength deflection with point load: {panel_deflection_point:.4f} m")    
+    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_point_load(load=point_load)  # m
+    print(f"Panel midlength deflection with point load: {delta_max:.4f} m")
+    print(f"Panel max shear force with point load: {max_shear_force:.4f} N")
+    print(f"Panel max bending moment with point load: {max_bending_moment:.4f} Nm")   
+
+
 
 
     # # 3. Create bridge

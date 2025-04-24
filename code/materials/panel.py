@@ -42,8 +42,8 @@ class Panel:
         core_volume = self.area * self.sandwich.tc  # m³
         
         # Calculate masses (convert density from g/cm³ to kg/m³)
-        face_mass = 2 * face_volume * (self.sandwich.Composite.rho * 1000)  # kg
-        core_mass = core_volume * (self.sandwich.Core.rho * 1000)  # kg
+        face_mass = 2 * face_volume * (self.sandwich.composite_material.rho * 1000)  # kg
+        core_mass = core_volume * (self.sandwich.core_material.rho * 1000)  # kg
         
         total_weight = (face_mass + core_mass) * g  # N
         return total_weight
@@ -112,7 +112,7 @@ class Panel:
             # Maximum bending moment (occurs at the center)
             max_bending_moment = load * L / 4  # Nm
             
-            return max_bending_moment, max_shear_force, delta_max
+            return delta_max, max_shear_force, max_bending_moment
 
     def check_against_face_failure(self,  point_load: float, distributed_load: float) -> float:
         """
@@ -132,7 +132,7 @@ class Panel:
 
         d = self.sandwich.d  # m
         tf = self.sandwich.tf  # Face thickness (m)
-        sigma_f_max = self.sandwich.Composite.sigma_f_max  # Maximum allowable face stress (Pa)
+        sigma_f_max = self.sandwich.composite_material.sigma_f_max  # Maximum allowable face stress (Pa)
         
         # Maximum normal stress in faces
         sigma_max = (max_bending_moment * d) / (2 * self.D)
@@ -158,7 +158,7 @@ class Panel:
         _, max_shear_force, _ = self.calculate_beam_response_uniform_load(load)
 
         d = self.sandwich.d  
-        tau_c_max = self.sandwich.Core.tau_c_max  # Maximum allowable core shear stress (Pa)
+        tau_c_max = self.sandwich.core_material.tau_c_max  # Maximum allowable core shear stress (Pa)
         
         # Maximum shear stress in the core
         tau_max = max_shear_force / d
@@ -167,35 +167,35 @@ class Panel:
         safety_factor = tau_c_max / abs(tau_max)
         return safety_factor
 
-        def check_against_face_wrinkling(self, load: float) -> float:
-            """
-            Calculate the safety factor for face wrinkling failure.
-            
-            Parameters:
-            -----------
-            load : float
-                Uniform load in N/m²
-            
-            Returns:
-            --------
-            float
-                Safety factor for face wrinkling failure
-            """
-            # Calculate the critical wrinkling stress
-            Ef = self.sandwich.Composite.Ef  # Face modulus of elasticity (Pa)
-            Ec = self.sandwich.Core.Ec  # Core modulus of elasticity (Pa)
-            Gc = self.sandwich.Core.Gc  # Core shear modulus (Pa)
-            
-            #sigma_cr = 0.5 * (Ef * Ec * Gc)**(1/3)  # Critical wrinkling stress (Pa) WRONG FORMULA
-            
-            # Maximum normal stress in faces due to bending
-            max_bending_moment, _, _ = self.calculate_beam_response_uniform_load(load)
-            d = self.sandwich.d  # m
-            sigma_max = (max_bending_moment * d) / (2 * self.D)
-            
-            # Safety factor for face wrinkling
-            safety_factor = sigma_cr / abs(sigma_max)
-            return safety_factor
+    def check_against_face_wrinkling(self, load: float) -> float:
+        """
+        Calculate the safety factor for face wrinkling failure.
+        
+        Parameters:
+        -----------
+        load : float
+            Uniform load in N/m²
+        
+        Returns:
+        --------
+        float
+            Safety factor for face wrinkling failure
+        """
+        # Calculate the critical wrinkling stress
+        Ef = self.sandwich.composite_material.Ef  # Face modulus of elasticity (Pa)
+        Ec = self.sandwich.core_material.Ec  # core_material modulus of elasticity (Pa)
+        Gc = self.sandwich.core_material.Gc  # core_material shear modulus (Pa)
+        
+        # sigma_cr = 0.5 * (Ef * Ec * Gc)**(1/3)  # Critical wrinkling stress (Pa) WRONG FORMULA
+        
+        # Maximum normal stress in faces due to bending
+        max_bending_moment, _, _ = self.calculate_beam_response_uniform_load(load)
+        d = self.sandwich.d  # m
+        sigma_max = (max_bending_moment * d) / (2 * self.D)
+        
+        # Safety factor for face wrinkling
+        safety_factor = sigma_cr / abs(sigma_max)
+        return safety_factor
 
     def calculate_max_global_stress(self, load: float) -> tuple:
         """Calculate maximum stresses in the faces.
