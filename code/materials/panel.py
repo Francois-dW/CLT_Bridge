@@ -114,7 +114,7 @@ class Panel:
             
             return max_bending_moment, max_shear_force, delta_max
 
-    def check_against_face_failure(self, self, point_load: float, distributed_load: float) -> float:
+    def check_against_face_failure(self,  point_load: float, distributed_load: float) -> float:
         """
         Calculate the safety factor for face failure due to normal stress.
         
@@ -129,7 +129,7 @@ class Panel:
             Safety factor for face failure
         """
         max_bending_moment, _, _ = self.calculate_beam_response_uniform_load(point_load)
-        
+
         d = self.sandwich.d  # m
         tf = self.sandwich.tf  # Face thickness (m)
         sigma_f_max = self.sandwich.Composite.sigma_f_max  # Maximum allowable face stress (Pa)
