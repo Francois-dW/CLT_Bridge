@@ -66,9 +66,13 @@ class Panel:
         q_line = load * self.width  # Convert surface load (N/m²) to line load (N/m)
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
+        S = self.sandwich.S  # Shear rigidity (Nm²)
         
         # Maximum deflection at midlength for simply supported beam with uniform line load
-        delta_max = (5 * q_line * L**4) / (384 * D)
+        delta_max_bend = (5 * q_line * L**4) / (384 * D)
+        delta_max_shear = (q_line * L**2) / (8 * S)  # Shear deflection
+
+        delta_max = delta_max_bend + delta_max_shear  # Total deflection (m)
         
         # Maximum shear force (occurs at the supports)
         max_shear_force = q_line * L / 2  # N
@@ -94,9 +98,13 @@ class Panel:
             """
             L = self.length  # Beam length (m)
             D = self.D  # Flexural rigidity (Nm²)
+            S = self.sandwich.S  # Shear rigidity (Nm²)
             
             # Maximum deflection at midlength for simply supported beam with point load at center
-            delta_max = (load * L**3) / (48 * D)
+            delta_max_bend = (load * L**3) / (48 * D)
+            delta_max_shear = (load * L) / 4*S
+
+            delta_max = delta_max_bend + delta_max_shear  # Total deflection (m)
             
             # Maximum shear force (occurs at the supports)
             max_shear_force = load / 2  # N
@@ -106,7 +114,7 @@ class Panel:
             
             return max_bending_moment, max_shear_force, delta_max
 
-    def check_against_face_failure(self, load: float) -> float:
+    def check_against_face_failure(self, self, point_load: float, distributed_load: float) -> float:
         """
         Calculate the safety factor for face failure due to normal stress.
         
@@ -120,7 +128,8 @@ class Panel:
         float
             Safety factor for face failure
         """
-        max_bending_moment, _, _ = self.calculate_beam_response_uniform_load(load)
+        max_bending_moment, _, _ = self.calculate_beam_response_uniform_load(point_load)
+        
         d = self.sandwich.d  # m
         tf = self.sandwich.tf  # Face thickness (m)
         sigma_f_max = self.sandwich.Composite.sigma_f_max  # Maximum allowable face stress (Pa)
@@ -132,7 +141,7 @@ class Panel:
         safety_factor = sigma_f_max / abs(sigma_max)
         return safety_factor
 
-    def check_against_core_shear_failure(self, load: float) -> float:
+    def check_against_core_shear_failure(self, point_load: float, distributed_load: float) -> float:
         """
         Calculate the safety factor for core shear failure.
         
@@ -147,6 +156,7 @@ class Panel:
             Safety factor for core shear failure
         """
         _, max_shear_force, _ = self.calculate_beam_response_uniform_load(load)
+
         d = self.sandwich.d  
         tau_c_max = self.sandwich.Core.tau_c_max  # Maximum allowable core shear stress (Pa)
         
@@ -186,7 +196,6 @@ class Panel:
             # Safety factor for face wrinkling
             safety_factor = sigma_cr / abs(sigma_max)
             return safety_factor
-
 
     def calculate_max_global_stress(self, load: float) -> tuple:
         """Calculate maximum stresses in the faces.
