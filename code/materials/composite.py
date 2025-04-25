@@ -172,7 +172,7 @@ class Laminate:
         self.B = B
         self.D = D
         ABD, inv_ABD = self.calculate_ABD_matrix()
-        self.A = A
+        self.ABD = ABD
         self.inv_ABD = inv_ABD
         self.E = self.get_equivalent_elasticity()
         if density is None:
@@ -268,7 +268,7 @@ class Laminate:
             z_index += 1
          # At the end of the calculate_A_B_D_matrices function, add:
             
-            tolerance = 1e-10
+            tolerance = 1e-9
             A[np.abs(A) < tolerance] = 0.0
             B[np.abs(B) < tolerance] = 0.0
             D[np.abs(D) < tolerance] = 0.0
@@ -411,22 +411,20 @@ class Laminate:
     
 
     def __str__(self):
+        np.set_printoptions(precision=4, suppress=False, formatter={'float_kind':lambda x: f"{x:.4e}"})
         result = "Laminate Characteristics:\n"
         result += f"Total Thickness: {self.total_thickness} mm\n"
         result += f"Number of Plies: {self.n_plies}\n"
         result += f"Density: {self.rho} kg/m^3\n"
-        result += f"Equivalent Elasticity Modulus: {self.E} Pa\n"
-        result += f"Equivalent Density: {self.rho} kg/m^3\n"
+        result += f"Equivalent Elasticity Modulus: {self.E:.4e} Pa\n"
         result += f"Plies:\n"
-        result += f"thinknesses: {self.ply_thicknesses} mm\n"
-        result += f"plies list thicknesses: {self.calculate_height_list()} mm\n"
-        A, B, D = self.calculate_A_B_D_matrices()
-        ABD, inv_ABD = self.calculate_ABD_matrix()
-        result += f"\nMatrix A:\n{A}"
-        result += f"\nMatrix B:\n{B}"
-        result += f"\nMatrix D:\n{D}"
-        result += f"\nABD Matrix:\n{ABD}"
-        result += f"\nInverse ABD Matrix:\n{inv_ABD}"
+        result += f"thicknesses: {np.array2string(self.ply_thicknesses, separator=', ')} mm\n"
+        result += f"plies list thicknesses: {np.array2string(self.calculate_height_list(), separator=', ')} mm\n"
+        result += f"\nMatrix A:\n{self.A}\n"
+        result += f"\nMatrix B:\n{self.B}\n"
+        result += f"\nMatrix D:\n{self.D}\n"
+        result += f"\nABD Matrix:\n{self.ABD}\n"
+        result += f"\nInverse ABD Matrix:\n{self.inv_ABD}\n"
         return result
     
     def get_equivalent_elasticity(self):
@@ -446,7 +444,7 @@ class Laminate:
             The equivalent elasticity modulus of the laminate at each node.
         """
         A = self.A
-        E_laminate = (1/self.total_thickness) * (( 2* A[0, 2] * A[0, 1] * A[1, 2] - A[0, 2]**2 * A[1, 1] - A[0, 1]**2 * A[2, 2] + A[0, 0] * (A[1, 1] * A[2, 2] - A[1, 2]**2)) / (A[1, 1] * A[2, 2] - A[1, 2]**2))
+        E_laminate = (1/(self.total_thickness * 1e-3)) * (( 2* A[0, 2] * A[0, 1] * A[1, 2] - A[0, 2]**2 * A[1, 1] - A[0, 1]**2 * A[2, 2] + A[0, 0] * (A[1, 1] * A[2, 2] - A[1, 2]**2)) / (A[1, 1] * A[2, 2] - A[1, 2]**2))
 
         return E_laminate
     
