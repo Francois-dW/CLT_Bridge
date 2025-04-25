@@ -20,11 +20,12 @@ class Panel:
         
         # Calculate basic properties
         self.area = self.width * self.length  # m²
-        self.total_thickness = (2 * self.sandwich.tf) + self.sandwich.tc  # m
+        self.total_thickness = ((2 * self.sandwich.tf) + self.sandwich.tc)* 1e-3  # m
         self.volume = self.area * self.total_thickness  # m³
         
         # Calculate panel properties
         self.D = self.sandwich.D  # Flexural rigidity
+        self.g = 9.80665  # m/s² (acceleration due to gravity)
         self.weight = self.calculate_weight()  # N
 
         self.max_bending_moment_distributedload = 0.0  # Nm
@@ -37,7 +38,7 @@ class Panel:
 
 
         self.sigma_max = 0.0  # Pa
-        self.g = 9.80665  # m/s² (acceleration due to gravity)
+        
 
 
     def calculate_weight(self) -> float:
@@ -51,12 +52,12 @@ class Panel:
         g = self.g  # m/s² (acceleration due to gravity)
         
         # Calculate volumes
-        face_volume = self.area * self.sandwich.tf  # m³
-        core_volume = self.area * self.sandwich.tc  # m³
+        face_volume = self.area * self.sandwich.tf * 1e-3  # m³
+        core_volume = self.area * self.sandwich.tc * 1e-3  # m³
         
-        # Calculate masses (convert density from g/cm³ to kg/m³)
-        face_mass = 2 * face_volume * (self.sandwich.composite_material.rho * 1000)  # kg
-        core_mass = core_volume * (self.sandwich.core_material.rho * 1000)  # kg
+        # Calculate masses kg/m³
+        face_mass = 2 * face_volume * self.sandwich.composite_material.rho   # kg
+        core_mass = core_volume * self.sandwich.core_material.rho  # kg
         
         total_weight = (face_mass + core_mass) * g  # N 
         return total_weight

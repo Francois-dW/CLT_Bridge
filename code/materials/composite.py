@@ -3,6 +3,46 @@ from code.materials.isotropic import Matrix, Reinforcement
 
 class Lamina:
     def __init__(self, E1, E2, G12, G23, nu12,  sigma_1t, sigma_1c, sigma_2t, sigma_2c, sigma_shear, nu13=None, nu23=None, thickness=None, G13=None,nu21= None, rho=None, angle=0):
+        """
+        Initializes the Lamina class with the given properties.
+
+        parameters:
+        ------------
+        E1 : float
+            Young's modulus in the fibre direction (Pa)
+        E2 : float
+            Young's modulus in the transverse direction (Pa)
+        G12 : float
+            In-plane shear modulus (Pa)
+        G23 : float
+            Out-of-plane shear modulus (Pa)
+        nu12 : float
+            Poisson's ratio for the 1-2 plane
+        nu23 : float, optional
+            Poisson's ratio for the 2-3 plane (default is None, set to nu12 if not provided)
+        nu13 : float, optional
+            Poisson's ratio for the 1-3 plane (default is None, set to nu12 if not provided)
+        G13 : float, optional
+            Out-of-plane shear modulus (Pa) (default is None, set to G12 if not provided)
+        nu21 : float, optional
+            Poisson's ratio for the 2-1 plane (default is None, set to nu12 if not provided)
+        rho : float, optional
+            Density (kg/m^3) (default is None)
+        sigma_1t : float
+            Longitudinal tensile strength (Pa)
+        sigma_1c : float
+            Longitudinal compressive strength (Pa)
+        sigma_2t : float
+            Transverse tensile strength (Pa)
+        sigma_2c : float
+            Transverse compressive strength (Pa)
+        sigma_shear : float
+            Shear strength (Pa)
+        angle : float, optional
+            Fiber orientation in degrees (default is 0)
+        thickness : float, optional (mm)
+            Thickness of the ply in mm (default is None)
+        """
         self.E1 = E1
         self.E2 = E2
         self.G12 = G12
@@ -21,7 +61,7 @@ class Lamina:
         else:
             self.nu13 = nu13
         if nu21 is None:
-            self.nu21 = nu12
+            self.nu21 = (E2/E1)*nu12
         else:
             self.nu21 = nu21
         self.rho = rho
@@ -33,9 +73,7 @@ class Lamina:
         self.angle = angle  # Fiber orientation in degrees
         self.thickness = thickness  # Thickness of the ply in mm
         self.Q12 = self.get_Q12_matrix()  # Stiffness matrix in local coordinate system
-        self.S12 = self.get_S12_matrix()  # Compliance matrix in local coordinate system
         self.Qxy = self.transform_Qxy_matrix()  # Stiffness matrix in global coordinate system
-        self.Sxy = self.transform_Sxy_matrix()  # Compliance matrix in global coordinate system
         
 
     
@@ -64,44 +102,14 @@ class Lamina:
             The Q matrix in local coordinate system
         """
         Q12 = np.array([
-            [self.E1 / (1 - self.nu12 * self.nu21), self.E1 * self.nu21 / (1 - self.nu12 * self.nu21), 0],
-            [self.E2 * self.nu12 / (1 - self.nu12 * self.nu21), self.E2 / (1 - self.nu12 * self.nu21), 0],
+            [self.E1 / (1 - self.nu12 * self.nu21), self.E2 * self.nu12 / (1 - self.nu12 * self.nu21), 0],
+            [self.E1 * self.nu21 / (1 - self.nu12 * self.nu21), self.E2 / (1 - self.nu12 * self.nu21), 0],
             [0, 0, self.G12]
         ])
 
         return Q12
     
 
-    def get_S12_matrix(self):
-        """
-        Build the Q and S matrices that will serve to calculate the stress and strain in the laminate
-        in the local coordinate system
-
-        Parameters:
-        ------------
-        E1 : float
-            Young's modulus in the fibre direction
-        E2 : float
-            Young's modulus in the transverse direction
-        nu12 : float
-            Poisson's ratio for the 1-2 plane
-        nu21 : float
-            Poisson's ratio for the 2-1 plane
-        G12 : float
-            In-plane shear modulus
-
-        Returns:
-        ---------
-        S12 : np.array (size 3x3)
-            The Q matrix in local coordinate system
-        """
-        S12 = np.array([
-            [1 / self.E1, -self.nu12 / self.E1, 0],
-            [-self.nu21 / self.E2, 1 / self.E2, 0],
-            [0, 0, 1 / self.G12]
-        ])
-
-        return S12
         
     
     def transform_Qxy_matrix(self):
@@ -125,36 +133,20 @@ class Lamina:
         T = np.array([
             [c**2, s**2, -2*c*s],
             [s**2, c**2, 2*c*s],
-            [-c*s, c*s, c**2 - s**2]
+            [c*s, -c*s, c**2 - s**2]
         ])
-        Qxy = np.dot(np.dot(np.linalg.inv(T), Q12), T)
+        Qxy = T@Q12@T.T
         return Qxy
     
-    def transform_Sxy_matrix(self):
-        """
-        Transform the S matrix to the global coordinate system of the ply
-
-        Parameters:
-        -----------
-        self: Lamina
-            The Lamina object
-
-        Returns:
-        --------
-        S_xy : np.array (size 3x3)
-            The S matrix in the global coordinate system
-        """
-        S12 = self.get_S12_matrix()
-        ply_angle_x1 = self.angle
-        c = np.cos(np.radians(ply_angle_x1))
-        s = np.sin(np.radians(ply_angle_x1))
-        T = np.array([
-            [c**2, s**2, 2*c*s],
-            [s**2, c**2, -2*c*s],
-            [-c*s, c*s, c**2 - s**2]
-        ])
-        Sxy = np.dot(np.dot(np.linalg.inv(T), S12), T)
-        return Sxy
+    
+    def __str__(self):
+        result = f"Lamina Properties:\n"
+        result += f"Angle: {self.angle} degrees\n"
+        result += f"Thickness: {self.thickness} mm\n"
+        result += f"Density: {self.rho} kg/m^3\n"
+        result += f"local Stiffness matrix Q12:\n{self.Q12}\n"
+        result += f"global Stiffness Matrix Qxy:\n{self.Qxy}\n"
+        return result
 
 
 class Laminate:
@@ -178,10 +170,12 @@ class Laminate:
         self.plies = plies
         self.n_plies = len(plies)       
         self._initialize_thicknesses(total_thickness, ply_thicknesses)
+        A, B , D = self.calculate_A_B_D_matrices()
+        self.A = A
+        self.B = B
+        self.D = D
         ABD, inv_ABD = self.calculate_ABD_matrix()
-        self.A = ABD[:3, :3]
-        self.B = ABD[:3, 3:]
-        self.D = ABD[3:, 3:]
+        self.A = A
         self.inv_ABD = inv_ABD
         self.E = self.get_equivalent_elasticity()
         if density is None:
@@ -211,9 +205,9 @@ class Laminate:
                 self.total_thickness = sum(self.ply_thicknesses)
                 # Optional: Check consistency if total_thickness was also provided
                 if total_thickness is not None and not np.isclose(self.total_thickness, total_thickness):
-                     print(f"Warning: Provided total_thickness ({total_thickness}) does not match the sum of individual ply thicknesses ({self.total_thickness}). Using the sum.")
+                     print(f"Warning: Provided total_thickness ({total_thickness}) does not match the sum of individual ply thicknesses ({self.total_thickness}). Using the sum. Thickness used: {self.total_thickness}")
                 if ply_thicknesses is not None and not np.array_equal(self.ply_thicknesses, ply_thicknesses):
-                     print(f"Warning: Provided ply_thicknesses do not match the thicknesses defined in Lamina objects. Using Lamina object thicknesses.")
+                     print(f"Warning: Provided ply_thicknesses do not match the thicknesses defined in Lamina objects. Using Lamina object thicknesses.Thicknesses used: {self.ply_thicknesses}")
 
             elif total_thickness is not None:
                 # Use the provided total_thickness
@@ -243,52 +237,49 @@ class Laminate:
             total_thickness += ply.thickness
             np.append(ply_thicknesses, ply.thickness)
         
-        height_list = np.zeros(self.n_plies + 1)  # Initialize height list with zeros
-        height_list[0] = -total_thickness / 2
+        mid_plane = total_thickness / 2
+        height_list = np.zeros(len(self.plies) + 1)
+        height_list[0] = mid_plane
+        for i in range(1, len(self.plies) + 1):
+            height_list[i] = height_list[i - 1] - (self.plies[i - 1].thickness)
 
         return height_list
-    
-    def get_ABD_matrices(Q_array, h_array):
-        """
-        Build the A, B, and D matrices that will serve to calculate the stress and strain in the laminate
-
-        Parameters:
-        -----------
-        Q_array : np.array of(N Q_xy array (size 3x3))
-            Array containing the Q matrix in the global coordinate system  for the node of the laminate
-        h_array : np.array (size 1xN+1)
-            height of the plane of the ply in the laminate with the first one being top of the first ply and the last one being the bottom of the last ply
-        """
-        A = np.zeros((3, 3))
-        B = np.zeros((3, 3))
-        D = np.zeros((3, 3))
-        for i in range(1,len(h_array)): #begin at 1 to avoid the first element ending at the last element
-            A += Q_array[i-1] * (h_array[i] - h_array[i-1])
-            B += Q_array[i-1] * (h_array[i]**2 - h_array[i-1]**2) / 2
-            D += Q_array[i-1] * (h_array[i]**3 - h_array[i-1]**3) / 3
-        ABD = np.block([[A, B], [B, D]])
-        return ABD, A, B, D
 
     def calculate_A_B_D_matrices(self):
         A = np.zeros((3, 3))
         B = np.zeros((3, 3))
         D = np.zeros((3, 3))
 
-        height_list = self.calculate_height_list()
+        # Calculate height list (assuming it's in mm)
+        height_list_mm = self.calculate_height_list()
+        # Convert heights to meters for this specific calculation
+        height_list_m = height_list_mm / 1000.0 
 
         z_index = 1
         for ply in self.plies:
-            Qxy = ply.Qxy
-            A += (height_list[z_index] - height_list[z_index - 1]) * Qxy  # [A] = N/mm
-            B += 0.5 * ((height_list[z_index]**2) - (height_list[z_index - 1]**2)) * Qxy  # [B] = N
-            D += (1/3) * ((height_list[z_index]**3) - (height_list[z_index - 1]**3)) * Qxy  # [D] = Nmm
-            z_index += 1
+            # Assuming ply.Qxy is in Pascals (N/m^2)
+            Qxy = ply.Qxy 
+            
+            # Get heights in meters for the current ply
+            h_k_m = height_list_m[z_index]
+            h_km1_m = height_list_m[z_index - 1]
 
+            # Calculate contributions using meters
+            A += (h_k_m - h_km1_m) * Qxy  # [A] = (m) * (N/m^2) = N/m
+            B += (0.5 * (h_k_m**2 - h_km1_m**2)) * Qxy  # [B] = (m^2) * (N/m^2) = N
+            D += ((1/3) * (h_k_m**3 - h_km1_m**3)) * Qxy  # [D] = (m^3) * (N/m^2) = N*m
+            z_index += 1
+         # At the end of the calculate_A_B_D_matrices function, add:
+            
+            tolerance = 1e-10
+            A[np.abs(A) < tolerance] = 0.0
+            B[np.abs(B) < tolerance] = 0.0
+            D[np.abs(D) < tolerance] = 0.0
         return A, B, D
 
     def calculate_ABD_matrix(self):
         A, B, D = self.calculate_A_B_D_matrices()
-        ABD = np.vstack((np.hstack((A, B)), np.hstack((B, D))))
+        ABD = np.block([[A, B], [B, D]])
         inv_ABD = np.linalg.inv(ABD)
         return ABD, inv_ABD
 
@@ -424,7 +415,14 @@ class Laminate:
 
     def __str__(self):
         result = "Laminate Characteristics:\n"
-        result += f"Total Thickness: {self.total_thickness():.3f} mm\n"
+        result += f"Total Thickness: {self.total_thickness} mm\n"
+        result += f"Number of Plies: {self.n_plies}\n"
+        result += f"Density: {self.rho} kg/m^3\n"
+        result += f"Equivalent Elasticity Modulus: {self.E} Pa\n"
+        result += f"Equivalent Density: {self.rho} kg/m^3\n"
+        result += f"Plies:\n"
+        result += f"thinknesses: {self.ply_thicknesses} mm\n"
+        result += f"plies list thicknesses: {self.calculate_height_list()} mm\n"
         A, B, D = self.calculate_A_B_D_matrices()
         ABD, inv_ABD = self.calculate_ABD_matrix()
         result += f"\nMatrix A:\n{A}"

@@ -28,11 +28,31 @@ def main():
         sigma_1c=600e6,   # Pa
         sigma_2t=20e6,    # Pa
         sigma_2c=140e6,    # Pa
-        sigma_shear=50e6,  # Pa
-        angle=0,  # degrees    
+        sigma_shear=70e6,  # Pa
+        angle=0,  # degrees
+        thickness=4   
     )
+    print("lamina0:")
+    print(lamina0)
 
     lamina90 = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1.6,    # gkg/m3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=90,  # degrees 
+        thickness=2
+    )
+
+    lamina45 = Lamina(
         E1=39e9,   # Pa
         E2=9.8e9,    # Pa
         nu12=0.3,
@@ -44,22 +64,38 @@ def main():
         sigma_1c=600e6,   # Pa
         sigma_2t=20e6,    # Pa
         sigma_2c=140e6,    # Pa
-        sigma_shear=50e6,  # Pa
-        angle=90,  # degrees    
+        sigma_shear=70e6,  # Pa
+        angle=45,  # degrees
+        thickness=1
+    )
+
+    lamina_45 = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1.6,    # g/cm^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=-45,  # degrees
+        thickness=1. #mm  
     )
     laminate = Laminate(
-        plies=[lamina0, lamina90, lamina90, lamina0],  # 4 layers of carbon fiber
-        total_thickness=30,  # 30mm total thickness
+        plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45,],  # 4 layers of carbon fiber
         density=1900,  # kg/m^3
     )
-    
-
+    print("laminate:")
+    print(laminate)
     # 3. Create sandwich & panel
     sandwich = Sandwich(
         composite_material=laminate,
         core_material=divinycell,
-        tf=2,  # 1mm face thickness
-        tc=20  # 20mm core thickness
+        tc=200  # 20mm core thickness
     )
 
     panel = Panel(
@@ -75,7 +111,7 @@ def main():
     
     # Calculate deflection with uniform load, assuming a uniform load of 5000 N/m²
     uniform_load = 5000 * 9.81 #N/m²
-    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_uniform_load(load=uniform_load)  # m
+    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_distributed_load(load=uniform_load)  # m
     print(f"Panel midlength deflection with uniform load: {delta_max:.4f} m")
     print(f"Panel max shear force with uniform load: {max_shear_force:.4f} N")
     print(f"Panel max bending moment with uniform load: {max_bending_moment:.4f} Nm")

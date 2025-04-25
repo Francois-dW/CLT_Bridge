@@ -26,7 +26,8 @@ class Sandwich:
         else:
             self.tc = tc
         if tf is None:
-            self.tf = composite_material.thickness
+            self.tf = composite_material.total_thickness
+            print(f"tf is None, using composite_material thickness: {self.tf} mm")
         else:
             self.tf = tf
         if not self.core_material.G:
