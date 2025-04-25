@@ -250,7 +250,7 @@ class Laminate:
         # Calculate height list (assuming it's in mm)
         height_list_mm = self.calculate_height_list()
         # Convert heights to meters for this specific calculation
-        height_list_m = height_list_mm / 1000.0 
+        height_list_m = height_list_mm /1000  # Convert mm to m
 
         z_index = 1
         for ply in self.plies:
@@ -258,13 +258,13 @@ class Laminate:
             Qxy = ply.Qxy 
             
             # Get heights in meters for the current ply
-            h_km1_m = height_list_m[z_index]
             h_k_m = height_list_m[z_index - 1]
+            h_km1_m = height_list_m[z_index]
 
             # Calculate contributions using meters
             A += (h_k_m - h_km1_m) * Qxy  # [A] = (m) * (N/m^2) = N/m
-            B += (0.5 * (h_k_m**2 - h_km1_m**2)) * Qxy  # [B] = (m^2) * (N/m^2) = N
-            D += ((1/3) * (h_k_m**3 - h_km1_m**3)) * Qxy  # [D] = (m^3) * (N/m^2) = N*m
+            B += ((h_k_m**2 - h_km1_m**2)/2) * Qxy  # [B] = (m^2) * (N/m^2) = N
+            D += ((h_k_m**3 - h_km1_m**3)/3) * Qxy  # [D] = (m^3) * (N/m^2) = N*m
             z_index += 1
          # At the end of the calculate_A_B_D_matrices function, add:
             
