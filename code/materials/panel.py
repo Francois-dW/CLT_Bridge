@@ -77,7 +77,7 @@ class Panel:
             (midlength_deflection, max_shear_force, max_bending_moment) in meters, Newtons, and Newton-meters
         """
         # Treat the panel as a beam with line load
-        q_line = load * self.width  # Convert surface load (N/m²) to line load (N/m)
+        q_line = load # Convert surface load (N/m²) to line load (N/m)
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
         S = self.sandwich.S  # Shear rigidity (Nm)
@@ -113,6 +113,8 @@ class Panel:
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
         S = self.sandwich.S  # Shear rigidity (Nm²)
+
+        load /= self.width  # Convert point load to line load (N/m)
         
         # Maximum deflection at midlength for simply supported beam with point load at center
         delta_max_bend = (load * L**3) / (48 * D)
@@ -241,9 +243,13 @@ class Panel:
         return sigma_max, tau_max
 
     def __str__(self):
-        return (f"Sandwich Panel:\n"
-                f"Dimensions: {self.length}m x {self.width}m x {self.total_thickness}m\n"
-                f"Area: {self.area:.2f} m²\n"
-                f"Volume: {self.volume:.3f} m³\n"
-                f"Weight: {self.weight:.1f} N\n"
-                f"Flexural Rigidity (D): {self.D:.2e} Nm²")
+        ret = f"Panel:\n"
+        ret += f"  Width: {self.width:.2f} m\n"
+        ret += f"  Length: {self.length:.2f} m\n"
+        ret += f"  Area: {self.area:.2f} m²\n"
+        ret += f"  Total Thickness: {self.total_thickness:.2f} m\n"
+        ret += f"  Volume: {self.volume:.2f} m³\n"
+        ret += f"  Weight: {self.weight:.2f} N\n"
+        ret += f"  Flexural Rigidity (D): {self.D:.2f} Nm²\n"
+        ret += f"  Shear Rigidity (S): {self.sandwich.S:.2f} Nm²\n"
+        return ret

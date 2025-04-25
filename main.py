@@ -30,7 +30,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=0,  # degrees
-        thickness=4   
+        thickness=8 
     )
     print("lamina0:")
     print(lamina0)
@@ -49,7 +49,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=90,  # degrees 
-        thickness=2
+        thickness=6. #mm
     )
 
     lamina45 = Lamina(
@@ -66,7 +66,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=45,  # degrees
-        thickness=1
+        thickness=4.
     )
 
     lamina_45 = Lamina(
@@ -83,10 +83,10 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=-45,  # degrees
-        thickness=1. #mm  
+        thickness=4. #mm  
     )
     laminate = Laminate(
-        plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45,],  # 4 layers of carbon fiber
+        plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45],  # 4 layers of carbon fiber
         density=1900,  # kg/m^3
     )
     print("laminate:")
@@ -123,7 +123,8 @@ def main():
     print(f"Panel max shear force with point load: {max_shear_force:.4f} N")
     print(f"Panel max bending moment with point load: {max_bending_moment:.4f} Nm")   
 
-
+    
+    print(panel)
 
 
     # # 3. Create bridge
