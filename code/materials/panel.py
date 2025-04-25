@@ -9,9 +9,9 @@ class Panel:
         -----------
         sandwich : Sandwich
             The sandwich material that makes up the panel
-        width : float
+        width : float (m)
             Width of the panel in meters
-        length : float
+        length : float (m)
             Length of the panel in meters
         """
         self.sandwich = sandwich
@@ -79,7 +79,7 @@ class Panel:
         q_line = load * self.width  # Convert surface load (N/m²) to line load (N/m)
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
-        S = self.sandwich.S  # Shear rigidity (Nm²)
+        S = self.sandwich.S  # Shear rigidity (Nm)
         
         # Maximum deflection at midlength for simply supported beam with uniform line load
         delta_max_bend = (5 * q_line * L**4) / (384 * D)
@@ -95,37 +95,37 @@ class Panel:
         
         return delta_max, max_shear_force, max_bending_moment
 
-        def calculate_beam_response_point_load(self, load: float) -> tuple:
-            """Calculate midlength deflection, maximum shear force, and maximum bending moment 
-            by treating the panel as a beam with a point load at the center.
-            
-            Parameters:
-            ----------- 
-            load : float
-            Point load in Newtons (N)
-            
-            Returns:
-            --------
-            tuple
-            (midlength_deflection, max_shear_force, max_bending_moment) in meters, Newtons, and Newton-meters
-            """
-            L = self.length  # Beam length (m)
-            D = self.D  # Flexural rigidity (Nm²)
-            S = self.sandwich.S  # Shear rigidity (Nm²)
-            
-            # Maximum deflection at midlength for simply supported beam with point load at center
-            delta_max_bend = (load * L**3) / (48 * D)
-            delta_max_shear = (load * L) / 4*S
+    def calculate_beam_response_point_load(self, load: float) -> tuple:
+        """Calculate midlength deflection, maximum shear force, and maximum bending moment 
+        by treating the panel as a beam with a point load at the center.
+        
+        Parameters:
+        ----------- 
+        load : float
+        Point load in Newtons (N)
+        
+        Returns:
+        --------
+        tuple
+        (midlength_deflection, max_shear_force, max_bending_moment) in meters, Newtons, and Newton-meters
+        """
+        L = self.length  # Beam length (m)
+        D = self.D  # Flexural rigidity (Nm²)
+        S = self.sandwich.S  # Shear rigidity (Nm²)
+        
+        # Maximum deflection at midlength for simply supported beam with point load at center
+        delta_max_bend = (load * L**3) / (48 * D)
+        delta_max_shear = (load * L) / 4*S
 
-            delta_max = delta_max_bend + delta_max_shear  # Total deflection (m)
-            
-            # Maximum shear force (occurs at the supports)
-            max_shear_force = load / 2  # N
-            
-            # Maximum bending moment (occurs at the center)
-            max_bending_moment = load * L / 4  # Nm
-            
-            return delta_max, max_shear_force, max_bending_moment
+        delta_max = delta_max_bend + delta_max_shear  # Total deflection (m)
+        
+        # Maximum shear force (occurs at the supports)
+        max_shear_force = load / 2  # N
+        
+        # Maximum bending moment (occurs at the center)
+        max_bending_moment = load * L / 4  # Nm
+        
+        return delta_max, max_shear_force, max_bending_moment
 
     def check_against_face_failure(self,  point_load: float, distributed_load: float) -> float:
         """

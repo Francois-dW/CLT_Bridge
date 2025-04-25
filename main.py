@@ -49,7 +49,7 @@ def main():
     )
     laminate = Laminate(
         plies=[lamina0, lamina90, lamina90, lamina0],  # 4 layers of carbon fiber
-        total_thickness=0.003,  # 30mm total thickness
+        total_thickness=30,  # 30mm total thickness
         density=1900,  # kg/m^3
     )
     
@@ -58,8 +58,8 @@ def main():
     sandwich = Sandwich(
         composite_material=laminate,
         core_material=divinycell,
-        tf=0.001,  # 1mm face thickness
-        tc=0.02    # 20mm core thickness
+        tf=2,  # 1mm face thickness
+        tc=20  # 20mm core thickness
     )
 
     panel = Panel(

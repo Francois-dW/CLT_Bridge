@@ -166,38 +166,18 @@ class Laminate:
         ----------
         plies: array of Lamina objects
             The plies that make up the laminate.
-        total_thickness: float, optional
-            The total total_thickness of the laminate (default is None).
-        ply_thicknesses: array of floats, optional
-            The thicknesses of each ply (default is None).
+        total_thickness: float, optional (mm)
+            The total total_thickness of the laminate in mm (default is None).
+        ply_thicknesses: array of floats, optional (mm)
+            The thicknesses of each ply in mm (default is None).
+        density: float, optional (kg/m^3)
+            The density of the laminate in kg/m^3 (default is None).
+        
         
         """
         self.plies = plies
-        self.n_plies = len(plies)
-               
-
-        # Check if individual ply thicknesses are defined in Lamina objects
-        if all(ply.thickness is not None for ply in plies):
-            # Use the thicknesses defined in each Lamina object
-            self.total_thickness = sum(ply.total_thickness for ply in plies)
-            self.ply_thicknesses = np.array([ply.total_thickness for ply in self.plies])
-        elif total_thickness is not None:
-            # Use the provided total_thickness and divide it equally among the plies
-            self.total_thickness = total_thickness
-            if ply_thicknesses is None:
-                #If not given, calculate the total_thickness of each ply
-                ply_thickness = total_thickness / self.n_plies
-                for ply in self.plies:
-                    ply.thickness = ply_thickness
-            else:
-                #If given, assign the total_thickness to each ply
-                if len(ply_thicknesses) != self.n_plies:
-                    raise ValueError("The length of ply_thicknesses must be equal to the number of plies.")
-                for i, ply in enumerate(self.plies):
-                    ply.thickness = ply_thicknesses[i]
-        else:
-            raise ValueError("Either individual ply thicknesses must be defined in Lamina objects or total_thickness must be provided.")
-        
+        self.n_plies = len(plies)       
+        self._initialize_thicknesses(total_thickness, ply_thicknesses)
         ABD, inv_ABD = self.calculate_ABD_matrix()
         self.A = ABD[:3, :3]
         self.B = ABD[:3, 3:]
@@ -209,29 +189,85 @@ class Laminate:
         else:
             self.rho = density
         
-        
+    def _initialize_thicknesses(self, total_thickness, ply_thicknesses):
+            """
+            Initializes the thicknesses of the plies and the total thickness of the laminate.
+
+            Parameters:
+            ----------
+            total_thickness: float, optional (mm)
+                The total thickness of the laminate in mm.
+            ply_thicknesses: array of floats, optional (mm)
+                The thicknesses of each ply in mm.
+
+            Raises:
+            -------
+            ValueError: If thickness information is insufficient or inconsistent.
+            """
+            # Check if individual ply thicknesses are defined in Lamina objects
+            if all(ply.thickness is not None for ply in self.plies):
+                # Use the thicknesses defined in each Lamina object
+                self.ply_thicknesses = np.array([ply.thickness for ply in self.plies])
+                self.total_thickness = sum(self.ply_thicknesses)
+                # Optional: Check consistency if total_thickness was also provided
+                if total_thickness is not None and not np.isclose(self.total_thickness, total_thickness):
+                     print(f"Warning: Provided total_thickness ({total_thickness}) does not match the sum of individual ply thicknesses ({self.total_thickness}). Using the sum.")
+                if ply_thicknesses is not None and not np.array_equal(self.ply_thicknesses, ply_thicknesses):
+                     print(f"Warning: Provided ply_thicknesses do not match the thicknesses defined in Lamina objects. Using Lamina object thicknesses.")
+
+            elif total_thickness is not None:
+                # Use the provided total_thickness
+                self.total_thickness = total_thickness
+                if ply_thicknesses is None:
+                    # If not given, calculate the thickness of each ply equally
+                    ply_thickness = total_thickness / self.n_plies
+                    self.ply_thicknesses = np.full(self.n_plies, ply_thickness)
+                    for i, ply in enumerate(self.plies):
+                        ply.thickness = self.ply_thicknesses[i]
+                else:
+                    # If given, assign the thickness to each ply
+                    if len(ply_thicknesses) != self.n_plies:
+                        raise ValueError("The length of ply_thicknesses must be equal to the number of plies.")
+                    if not np.isclose(sum(ply_thicknesses), total_thickness):
+                         raise ValueError("The sum of ply_thicknesses must be equal to the total_thickness.")
+                    self.ply_thicknesses = np.array(ply_thicknesses)
+                    for i, ply in enumerate(self.plies):
+                        ply.thickness = self.ply_thicknesses[i]
+            else:
+                raise ValueError("Either individual ply thicknesses must be defined in Lamina objects, or total_thickness must be provided.")
 
     def calculate_height_list(self):
         total_thickness = 0
-        ply_thicknesses = []
+        ply_thicknesses = np.array([])
         for ply in self.plies:
-            thickness = ply.thickness
-            ply_thicknesses.append(thickness)
-            total_thickness += thickness
-
-        half_thickness = total_thickness / 2
-
-        height_list = [-half_thickness]  # Add the height of the first layer
-        z_prev = -half_thickness
-
-        for thickness in ply_thicknesses:
-            z = z_prev + thickness
-            height_list.append(z)  # Add the height of the current layer
-            z_prev = z
-
-        height_list.sort()
+            total_thickness += ply.thickness
+            np.append(ply_thicknesses, ply.thickness)
+        
+        height_list = np.zeros(self.n_plies + 1)  # Initialize height list with zeros
+        height_list[0] = -total_thickness / 2
 
         return height_list
+    
+    def get_ABD_matrices(Q_array, h_array):
+        """
+        Build the A, B, and D matrices that will serve to calculate the stress and strain in the laminate
+
+        Parameters:
+        -----------
+        Q_array : np.array of(N Q_xy array (size 3x3))
+            Array containing the Q matrix in the global coordinate system  for the node of the laminate
+        h_array : np.array (size 1xN+1)
+            height of the plane of the ply in the laminate with the first one being top of the first ply and the last one being the bottom of the last ply
+        """
+        A = np.zeros((3, 3))
+        B = np.zeros((3, 3))
+        D = np.zeros((3, 3))
+        for i in range(1,len(h_array)): #begin at 1 to avoid the first element ending at the last element
+            A += Q_array[i-1] * (h_array[i] - h_array[i-1])
+            B += Q_array[i-1] * (h_array[i]**2 - h_array[i-1]**2) / 2
+            D += Q_array[i-1] * (h_array[i]**3 - h_array[i-1]**3) / 3
+        ABD = np.block([[A, B], [B, D]])
+        return ABD, A, B, D
 
     def calculate_A_B_D_matrices(self):
         A = np.zeros((3, 3))

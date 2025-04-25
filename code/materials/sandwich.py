@@ -14,10 +14,10 @@ class Sandwich:
             The composite material of the sandwich.
         core_material: Material
             The core material of the sandwich.
-        tc: float, optional
-            Thickness of the core (default is None).
-        tf: float, optional
-            Thickness of the foam (default is None).
+        tc: float, optional (mm)
+            Thickness of the core in mm(default is None).
+        tf: float, optional (mm)
+            Thickness of the foam in mm (default is None).
         """
         self.composite_material = composite_material
         self.core_material = core_material
@@ -37,6 +37,7 @@ class Sandwich:
         self.Ef = core_material.E  # Young's modulus of the foam
         self.Ec = composite_material.E  # Young's modulus of the core
         self.D = self.get_D()  # D value for the sandwich with a soft core
+        self.S = self.get_S()  # S value for the sandwich with a soft core
 
 
     def get_D(self):
@@ -45,25 +46,26 @@ class Sandwich:
         Parameters:
         ----------
         self.Ef: float
-            Young's modulus of the foam
+            Young's modulus of the foam in Pa
         self.tf: float
-            thickness of the foam
+            thickness of the foam in mm
         self.d: float
-            distance between the core and the foam
+            distance between the core and the foam in mm
         self.Ec: float
-            Young's modulus of the core
+            Young's modulus of the core in Pa
         self.tc: float
-            thickness of the core
+            thickness of the core in mm
             
         Returns:
         -------
         D: float
-            D value for the sandwich with a soft core
+            D value for the sandwich with a soft core in Nm^2
         """
-        Df = (self.Ef * self.tf ** 3) / 6
-        D0 = (self.Ef * self.tf * self.d ** 2) / 2
-        Dc = (self.Ec * self.tc ** 3) / 12
+        Df = (self.Ef * (self.tf/1000) ** 3) / 6
+        D0 = (self.Ef * (self.tf/1000) * (self.d/1000) ** 2) / 2
+        Dc = (self.Ec * (self.tc/1000) ** 3) / 12
         D = 2*Df + D0 + Dc
+        
         return D
     
     def get_S(self):
@@ -72,18 +74,18 @@ class Sandwich:
         Parameters:
         ----------
         self.Gc: float
-            Shear modulus of the core
+            Shear modulus of the core in Pa
         self.d: float
-            distance between the core and the foam
+            distance between the core and the foam in mm
         self.tc: float
-            thickness of the core
+            thickness of the core in mm
         
         Returns:
         -------
         S: float
-            S value for the sandwich with a soft core
+            S value for the sandwich with a soft core in Nm
         """
-        S = (self.Gc * self.d ** 2) / self.tc
+        S = (self.Gc * (self.d/1000) ** 2) / (self.tc/1000)
         return S
 
     
