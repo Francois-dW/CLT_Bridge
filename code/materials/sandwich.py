@@ -85,7 +85,7 @@ class Sandwich:
         Returns:
         -------
         S: float
-            S value for the sandwich with a soft core in Nm
+            S value for the sandwich with a soft core in N/m
         """
         S = (self.Gc * (self.d/1000) ** 2) / (self.tc/1000)
         return S

@@ -110,8 +110,8 @@ def main():
         core_material=divinycell,
         tc=200 # mm # Assuming core thickness unit is meters based on panel dimensions
     )
-    print(f"Composite equivalent elastic modulus: {sandwich.composite_material.E} Pa")
-    print(sandwich)
+    # print(f"Composite equivalent elastic modulus: {sandwich.composite_material.E} Pa")
+    # print(sandwich)
 
     panel = Panel(
         sandwich=sandwich,
@@ -133,8 +133,8 @@ def main():
 
     # Calculate deflection with point load at midlength, assuming a point load of 2000 N without areal distribution
     point_load = 2000  * 9.81 # N
-    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_point_load(load=point_load)  # m
-    print(f"Panel midlength deflection with point load: {delta_max:.4f} m")
+    delta_point, max_shear_force, max_bending_moment = panel.calculate_beam_response_point_load(load=point_load)  # m
+    print(f"Panel midlength deflection with point load: {delta_point:.4f} m")
     print(f"Panel max shear force with point load: {max_shear_force:.4f} N")
     print(f"Panel max bending moment with point load: {max_bending_moment:.4f} Nm")   
 

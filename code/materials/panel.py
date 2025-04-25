@@ -25,6 +25,7 @@ class Panel:
         
         # Calculate panel properties
         self.D = self.sandwich.D  # Flexural rigidity
+        self.S = self.sandwich.S
         self.g = 9.80665  # m/s² (acceleration due to gravity)
         self.weight = self.calculate_weight()  # N
 
@@ -77,10 +78,10 @@ class Panel:
             (midlength_deflection, max_shear_force, max_bending_moment) in meters, Newtons, and Newton-meters
         """
         # Treat the panel as a beam with line load
-        q_line = load # Convert surface load (N/m²) to line load (N/m)
+        q_line = load 
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
-        S = self.sandwich.S  # Shear rigidity (Nm)
+        S = self.S  # Shear rigidity (Nm)
         
         # Maximum deflection at midlength for simply supported beam with uniform line load
         delta_max_bend = (5 * q_line * L**4) / (384 * D)
@@ -112,13 +113,13 @@ class Panel:
         """
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
-        S = self.sandwich.S  # Shear rigidity (Nm²)
+        S = self.S  # Shear rigidity (Nm²)
 
         load /= self.width  # Convert point load to line load (N/m)
         
         # Maximum deflection at midlength for simply supported beam with point load at center
         delta_max_bend = (load * L**3) / (48 * D)
-        delta_max_shear = (load * L) / 4*S
+        delta_max_shear = (load * L) / (4*S)
 
         delta_max = delta_max_bend + delta_max_shear  # Total deflection (m)
         
