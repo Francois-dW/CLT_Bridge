@@ -1,3 +1,13 @@
+import sys
+import os
+
+# Add the parent directory of the script's directory to the Python path
+script_dir = os.path.dirname(os.path.abspath(__file__)) # c:\LSC\CLT_Bridge
+parent_dir = os.path.dirname(script_dir) # c:\LSC
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir) # Add c:\LSC to sys.path
+
+# Modify imports to use the full path from the perspective of c:\LSC
 from code.materials.isotropic import Matrix, Reinforcement, IsotropicMaterial
 from code.materials.composite import Laminate, Lamina, LaminaMix
 from code.materials.sandwich import Sandwich
@@ -10,7 +20,7 @@ def main():
         E=2.5e9,    # Pa
         nu=0.3,
         G=1.2e9,    # Pa
-        rho=0.05,   # g/cm^3
+        rho=0.05,   # g/cm^3 # Note: Ensure units are consistent (e.g., kg/m^3)
         Rm=1e6      # Pa
     )
 
@@ -32,8 +42,6 @@ def main():
         angle=0,  # degrees
         thickness=8 
     )
-    print("lamina0:")
-    print(lamina0)
 
     lamina90 = Lamina(
         E1=39e9,   # Pa
@@ -42,7 +50,7 @@ def main():
         G12=2.8e9,    # Pa
         G23=2e9,    # Pa
         G13=2.8e9,    # Pa
-        rho=1.6,    # gkg/m3
+        rho=1.6,    # g/cm^3 # Corrected unit comment consistency
         sigma_1t=1100e6,  # Pa
         sigma_1c=600e6,   # Pa
         sigma_2t=20e6,    # Pa
@@ -51,6 +59,7 @@ def main():
         angle=90,  # degrees 
         thickness=6. #mm
     )
+    print(lamina90)
 
     lamina45 = Lamina(
         E1=39e9,   # Pa
@@ -85,17 +94,20 @@ def main():
         angle=-45,  # degrees
         thickness=4. #mm  
     )
+
     laminate = Laminate(
         plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45],  # 4 layers of carbon fiber
         density=1900,  # kg/m^3
     )
     print("laminate:")
-    print(laminate)
+    print(laminate_simple)
+
+
     # 3. Create sandwich & panel
     sandwich = Sandwich(
         composite_material=laminate,
         core_material=divinycell,
-        tc=200  # 20mm core thickness
+        tc=0.200  # m # Assuming core thickness unit is meters based on panel dimensions
     )
 
     panel = Panel(

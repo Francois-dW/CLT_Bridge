@@ -109,9 +109,6 @@ class Lamina:
 
         return Q12
     
-
-        
-    
     def transform_Qxy_matrix(self):
         """
         Transform the Q matrix to the global coordinate system of the ply
@@ -261,8 +258,8 @@ class Laminate:
             Qxy = ply.Qxy 
             
             # Get heights in meters for the current ply
-            h_k_m = height_list_m[z_index]
-            h_km1_m = height_list_m[z_index - 1]
+            h_km1_m = height_list_m[z_index]
+            h_k_m = height_list_m[z_index - 1]
 
             # Calculate contributions using meters
             A += (h_k_m - h_km1_m) * Qxy  # [A] = (m) * (N/m^2) = N/m
