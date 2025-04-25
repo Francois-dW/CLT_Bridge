@@ -112,33 +112,24 @@ def main():
     )
     # print(f"Composite equivalent elastic modulus: {sandwich.composite_material.E} Pa")
     # print(sandwich)
-
+    point_load = 2000  * 9.81 # N
+    uniform_load = 5000 * 9.81 #N/m²
     panel = Panel(
         sandwich=sandwich,
         width=4.200,  # m
-        length=4   # m
+        length=4,   # m
+        point_load=point_load,  # N
+        distributed_load=uniform_load  # N/m²
     )
 
-
-    # 4. Perform calculations
-    panel_weight = panel.calculate_weight()
-    print(f"Panel weight: {panel_weight:.4f} N")
+    print(f"panel:\n{panel}")
     
-    # Calculate deflection with uniform load, assuming a uniform load of 5000 N/m²
-    uniform_load = 5000 * 9.81 #N/m²
-    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_distributed_load(load=uniform_load)  # m
-    print(f"Panel midlength deflection with uniform load: {delta_max:.4f} m")
-    print(f"Panel max shear force with uniform load: {max_shear_force:.4f} N")
-    print(f"Panel max bending moment with uniform load: {max_bending_moment:.4f} Nm")
+     
 
-    # Calculate deflection with point load at midlength, assuming a point load of 2000 N without areal distribution
-    point_load = 2000  * 9.81 # N
-    delta_point, max_shear_force, max_bending_moment = panel.calculate_beam_response_point_load(load=point_load)  # m
-    print(f"Panel midlength deflection with point load: {delta_point:.4f} m")
-    print(f"Panel max shear force with point load: {max_shear_force:.4f} N")
-    print(f"Panel max bending moment with point load: {max_bending_moment:.4f} Nm")   
-
-    
+    panel.check_against_face_failure()
+    panel.check_against_core_shear_failure()
+    panel.check_against_face_wrinkling()
+    panel.check_against_core_compression_failure()
     # print(panel)
 
 

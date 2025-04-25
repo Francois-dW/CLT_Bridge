@@ -75,9 +75,6 @@ class Lamina:
         self.Q12 = self.get_Q12_matrix()  # Stiffness matrix in local coordinate system
         self.Qxy = self.transform_Qxy_matrix()  # Stiffness matrix in global coordinate system
         
-
-    
-
     def get_Q12_matrix(self):
         """
         Build the Q and S matrices that will serve to calculate the stress and strain in the laminate
@@ -134,7 +131,6 @@ class Lamina:
         ])
         Qxy = T@Q12@T.T
         return Qxy
-    
     
     def __str__(self):
         result = f"Lamina Properties:\n"
@@ -407,8 +403,6 @@ class Laminate:
             print(f"F22: {F22}")
             print(f"F66: {F66}")
             print(f"total: {F1 + F2 + F11 + F22 + F66 + 2 * F12}")
-
-    
 
     def __str__(self):
         np.set_printoptions(precision=4, suppress=False, formatter={'float_kind':lambda x: f"{x:.4e}"})
