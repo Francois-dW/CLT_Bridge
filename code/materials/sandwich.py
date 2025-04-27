@@ -17,12 +17,13 @@ class Sandwich:
         tc: float, optional (mm)
             Thickness of the core in mm(default is None).
         tf: float, optional (mm)
-            Thickness of the foam in mm (default is None).
+            Thickness of the flange in mm (default is None).
         """
         self.composite_material = composite_material
         self.core_material = core_material
         if tc is None:
             self.tc = core_material.thickness
+            print(f"tc is None, using core_material thickness: {self.tc} mm")
         else:
             self.tc = tc
         if tf is None:
@@ -35,8 +36,8 @@ class Sandwich:
         else:
             self.Gc = core_material.G
         self.d = self.tf + self.tc  # distance between the core and the foam
-        self.Ef = core_material.E  # Young's modulus of the foam
-        self.Ec = composite_material.E  # Young's modulus of the core
+        self.Ef = composite_material.E  # Young's modulus of the foam
+        self.Ec = core_material.E  # Young's modulus of the core
         self.D = self.get_D()  # D value for the sandwich with a soft core
         self.S = self.get_S()  # S value for the sandwich with a soft core
 
@@ -84,9 +85,47 @@ class Sandwich:
         Returns:
         -------
         S: float
-            S value for the sandwich with a soft core in Nm
+            S value for the sandwich with a soft core in N/m
         """
         S = (self.Gc * (self.d/1000) ** 2) / (self.tc/1000)
         return S
+    
+    def failure_face(self, moment_y):
+        """Calculates the face failure of the sandwich panel.
+
+        Parameters:
+        ----------
+        moment_y: float
+            The moment in the y direction in Nm.
+
+        Returns:
+        -------
+        """
+        sigma_xx = moment_y / ((self.tf/1000) * (self.d/1000)) # Bending stress in the x direction
+        if sigma_xx >= 0: #tensile failure
+            sigma_t = self.composite_material.sigma_t
+            if sigma_xx >= sigma_t:
+                print(f"Face failure in tension: {sigma_xx} >= {sigma_t}")
+                return True
+        else: #compressive failure
+            sigma_c = self.composite_material.sigma_c
+            if sigma_xx <= -sigma_c:
+                print(f"Face failure in compression: {sigma_xx} <= {-sigma_c}")
+                return True
+
+    
+    def __str__(self):
+        """Returns a string representation of the Sandwich object."""
+        result = f"Sandwich:\n"
+        result += f"Core Thickness (tc): {self.tc} mm\n"
+        result += f"Flange/skin Thickness (tf): {self.tf} mm\n"
+        result += f"Distance (d): {self.d} mm\n"
+        result += f"Shear Modulus of Core (Gc): {self.Gc} Pa\n"
+        result += f"Young's Modulus of Flange (Ef): {self.Ef} Pa\n"
+        result += f"Young's Modulus of Core (Ec): {self.Ec} Pa\n"
+        result += f"D value: {self.D} Nm^2\n"
+        result += f"S value: {self.S} Nm\n"
+        return result
+    
 
     

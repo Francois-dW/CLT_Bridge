@@ -23,12 +23,15 @@ class Reinforcement:
         return f"Reinforcement(E_l={self.E_l}, E_t={self.E_t}, G={self.G}, nu_lt={self.nu_lt}, nu_tl={self.nu_tl}, rho={self.rho}, Rm={self.Rm})"
     
 class IsotropicMaterial:
-    def __init__(self, E, nu, G, rho, Rm):
+    def __init__(self, E, nu, G, rho, Rm, sigma_t= None, sigma_c= None, sigma_shear= None):
         self.E = E  # Young's modulus in Pa
         self.nu = nu  # Poisson's ratio
         self.G = G  # Shear modulus in Pa
         self.rho = rho  # Density in g/cm3
         self.Rm = Rm  # Tensile strength in Pa
+        self.sigma_t = sigma_t # Tensile strength in Pa
+        self.sigma_c = sigma_c # Compressive strength in Pa
+        self.sigma_shear = sigma_shear # Shear strength in Pa
 
     def __repr__(self):
         return f"IsotropicMaterial(E={self.E}, nu={self.nu}, G={self.G}, rho={self.rho}, Rm={self.Rm})"

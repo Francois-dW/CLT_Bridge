@@ -2,7 +2,7 @@ import numpy as np
 from ..materials.sandwich import Sandwich
 
 class Panel:
-    def __init__(self, sandwich: Sandwich, width: float, length: float):
+    def __init__(self, sandwich: Sandwich, width: float, length: float, point_load: float = 0.0, distributed_load: float = 0.0):
         """Initialize a panel made of sandwich material.
         
         Parameters:
@@ -17,6 +17,8 @@ class Panel:
         self.sandwich = sandwich
         self.width = width  # m
         self.length = length  # m
+        self.point_load = point_load  # N
+        self.distributed_load = distributed_load  # N/m²
         
         # Calculate basic properties
         self.area = self.width * self.length  # m²
@@ -25,20 +27,21 @@ class Panel:
         
         # Calculate panel properties
         self.D = self.sandwich.D  # Flexural rigidity
+        self.S = self.sandwich.S
         self.g = 9.80665  # m/s² (acceleration due to gravity)
         self.weight = self.calculate_weight()  # N
 
-        self.max_bending_moment_distributedload = 0.0  # Nm
-        self.max_shear_force_distributedload = 0.0  # N
-        self.delta_max_distributedload = 0.0  # m
+        # Calculate and store distributed load response
+        delta_max, max_shear_force, max_bending_moment = self.calculate_beam_response_distributed_load()
+        self.max_bending_moment_distributed_load = max_bending_moment  # Nm
+        self.max_shear_force_distributed_load = max_shear_force  # N
+        self.delta_max_distributed_load = delta_max  # m
 
-        self.max_bending_moment_pointload = 0.0  # Nm
-        self.max_shear_force_pointload = 0.0  # N
-        self.delta_max_pointload = 0.0
-
-
-        self.sigma_max = 0.0  # Pa
-        
+        # Calculate and store point load response
+        delta_max, max_shear_force, max_bending_moment = self.calculate_beam_response_point_load()
+        self.max_bending_moment_point_load = max_bending_moment  # Nm
+        self.max_shear_force_point_load = max_shear_force # N
+        self.delta_max_point_load = delta_max  # m
 
 
     def calculate_weight(self) -> float:
@@ -62,25 +65,20 @@ class Panel:
         total_weight = (face_mass + core_mass) * g  # N 
         return total_weight
     
-    def calculate_beam_response_distributed_load(self, load: float) -> tuple:
+    def calculate_beam_response_distributed_load(self) -> tuple:
         """Calculate midlength deflection, maximum shear force, and maximum bending moment 
-        by treating the panel as a beam with uniform line load.
+        by treating the panel as a beam with its own distributed load.
         
-        Parameters:
-        ----------- 
-        load : float
-            Uniform load in N/m²
-            
         Returns:
         --------
         tuple
             (midlength_deflection, max_shear_force, max_bending_moment) in meters, Newtons, and Newton-meters
         """
-        # Treat the panel as a beam with line load
-        q_line = load # Convert surface load (N/m²) to line load (N/m)
+        # Use the panel's distributed load
+        q_line = self.distributed_load
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
-        S = self.sandwich.S  # Shear rigidity (Nm)
+        S = self.S  # Shear rigidity (Nm²)
         
         # Maximum deflection at midlength for simply supported beam with uniform line load
         delta_max_bend = (5 * q_line * L**4) / (384 * D)
@@ -96,41 +94,37 @@ class Panel:
         
         return delta_max, max_shear_force, max_bending_moment
 
-    def calculate_beam_response_point_load(self, load: float) -> tuple:
+    def calculate_beam_response_point_load(self) -> tuple:
         """Calculate midlength deflection, maximum shear force, and maximum bending moment 
         by treating the panel as a beam with a point load at the center.
-        
-        Parameters:
-        ----------- 
-        load : float
-        Point load in Newtons (N)
-        
+
         Returns:
         --------
         tuple
-        (midlength_deflection, max_shear_force, max_bending_moment) in meters, Newtons, and Newton-meters
+            (midlength_deflection, max_shear_force, max_bending_moment) in meters, Newtons, and Newton-meters
         """
         L = self.length  # Beam length (m)
         D = self.D  # Flexural rigidity (Nm²)
-        S = self.sandwich.S  # Shear rigidity (Nm²)
+        S = self.S  # Shear rigidity (Nm²)
+        load = self.point_load  # Point load in Newtons (N)
 
-        load /= self.width  # Convert point load to line load (N/m)
-        
+        load_per_width = load / self.width if self.width != 0 else 0  # Convert point load to line load (N/m)
+
         # Maximum deflection at midlength for simply supported beam with point load at center
-        delta_max_bend = (load * L**3) / (48 * D)
-        delta_max_shear = (load * L) / (4 * S)
+        delta_max_bend = (load_per_width * L**3) / (48 * D)
+        delta_max_shear = (load_per_width * L) / (4 * S)
 
         delta_max = delta_max_bend + delta_max_shear  # Total deflection (m)
-        
+
         # Maximum shear force (occurs at the supports)
-        max_shear_force = load / 2  # N
-        
+        max_shear_force = load_per_width / 2  # N
+
         # Maximum bending moment (occurs at the center)
-        max_bending_moment = load * L / 4  # Nm
-        
+        max_bending_moment = load_per_width * L / 4  # Nm
+
         return delta_max, max_shear_force, max_bending_moment
 
-    def check_against_face_failure(self,  point_load: float, distributed_load: float) -> float:
+    def check_against_face_failure(self) -> float:
         """
         Calculate the safety factor for face failure due to normal stress.
         
@@ -144,11 +138,11 @@ class Panel:
         float
             Safety factor for face failure
         """
-        max_bending_moment = max(self.max_bending_moment_distributedload, self.max_bending_moment_pointload)  # Nm
+        max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)  # Nm
     
         d = self.sandwich.d  # m
         tf = self.sandwich.tf  # Face thickness (m)
-        sigma_f_max = self.sandwich.composite_material.sigma_f_max  # Maximum allowable face stress (Pa)
+        sigma_f_max = self.sandwich.composite_material.sigma_f_max  # Maximum allowable face stress (Pa) TODO: Check if this is correct
         
         # Maximum normal stress in faces
         sigma_max = (max_bending_moment * d) / (2 * self.D)
@@ -157,7 +151,7 @@ class Panel:
         safety_factor = sigma_f_max / abs(sigma_max)
         return safety_factor
 
-    def check_against_core_shear_failure(self, point_load: float, distributed_load: float) -> float:
+    def check_against_core_shear_failure(self,) -> float:
         """
         Calculate the safety factor for core shear failure.
         
@@ -171,10 +165,10 @@ class Panel:
         float
             Safety factor for core shear failure
         """
-        max_shear_force = max(self.max_shear_force_distributedload, self.max_shear_force_pointload)  # N
+        max_shear_force = max(self.max_shear_force_distributed_load, self.max_shear_force_point_load)  # N
 
         d = self.sandwich.d  
-        tau_c_max = self.sandwich.core_material.tau_c_max  # Maximum allowable core shear stress (Pa)
+        tau_c_max = self.sandwich.core_material.tau_c_max  # Maximum allowable core shear stress (Pa) TODO: Check if this is correct
         
         # Maximum shear stress in the core
         tau_max = max_shear_force / d
@@ -183,7 +177,7 @@ class Panel:
         safety_factor = tau_c_max / abs(tau_max)
         return safety_factor
 
-    def check_against_face_wrinkling(self, point_load: float, distributed_load: float) -> float:
+    def check_against_face_wrinkling(self) -> float:
         """
         Calculate the safety factor for face wrinkling failure.
         
@@ -202,10 +196,10 @@ class Panel:
         Ec = self.sandwich.core_material.Ec  # core_material modulus of elasticity (Pa)
         Gc = self.sandwich.core_material.Gc  # core_material shear modulus (Pa)
         
-        # sigma_cr = 0.5 * (Ef * Ec * Gc)**(1/3)  # Critical wrinkling stress (Pa) WRONG FORMULA
+        sigma_cr = 0.5**3 * np.sqrt(Ef * Ec * Gc)  # Critical wrinkling stress (Pa) WRONG FORMULA
         
         # Maximum normal stress in faces due to bending
-        max_bending_moment = max(self.max_bending_moment_distributedload, self.max_bending_moment_pointload)
+        max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)
 
         d = self.sandwich.d  # m
         sigma_max = (max_bending_moment * d) / (2 * self.D)
@@ -213,9 +207,10 @@ class Panel:
         # Safety factor for face wrinkling
         safety_factor = sigma_cr / abs(sigma_max)
         return safety_factor
-
-    def calculate_max_global_stress(self, load: float) -> tuple:
-        """Calculate maximum stresses in the faces.
+    
+    def check_against_core_compression_failure(self) -> float:
+        """
+        Calculate the safety factor for core compression failure.
         
         Parameters:
         -----------
@@ -224,23 +219,53 @@ class Panel:
         
         Returns:
         --------
-        tuple
-            (max_normal_stress, max_shear_stress) in Pa
+        float
+            Safety factor for core compression failure
         """
-        q = load  # N/m²
-        a = self.length  # m
-        d = self.sandwich.d  # m
-        
-        # Maximum bending moment for simply supported plate
-        max_bending_moment = max(self.max_bending_moment_distributedload, self.max_bending_moment_pointload)
+        point_load = self.point_load
+        sigma_c_comp = self.sandwich.core_material.sigma_comp
+        min_A = point_load / sigma_c_comp
 
-        # Maximum normal stress in faces
-        sigma_max = (M_max * d) / (2 * self.D)
+        return min_A
+    
+    def calculate_load_vector_point_load_laminate(self) -> np.ndarray:
+        """Calculate the loads in each ply of the sandwich panel.
         
-        # Maximum shear stress in core
-        tau_max = (q * a) / (2 * d)
+        Returns:
+        --------
+        np.ndarray
+            Array of loads in each ply (N)
+        """
+        # Initialize an array to hold the loads in each ply
         
-        return sigma_max, tau_max
+        Nx = self.max_bending_moment_point_load / self.sandwich.d
+        Ny = 0
+        Nxy = 0
+        Mx = 0
+        My = 0
+        Mxy = 0
+
+        return np.array([Nx, Ny, Nxy, Mx, My, Mxy])
+    
+    def calculate_load_vector_distributed_load_laminate(self) -> np.ndarray:
+        """Calculate the loads in each ply of the sandwich panel.
+        
+        Returns:
+        --------
+        np.ndarray
+            Array of loads in each ply (N)
+        """
+        # Initialize an array to hold the loads in each ply
+        
+        Nx = self.max_bending_moment_distributed_load / self.sandwich.d
+        Ny = 0
+        Nxy = 0
+        Mx = 0
+        My = 0
+        Mxy = 0
+
+        return np.array([Nx, Ny, Nxy, Mx, My, Mxy])
+    
 
     def __str__(self):
         ret = f"Panel:\n"
@@ -252,4 +277,10 @@ class Panel:
         ret += f"  Weight: {self.weight:.2f} N\n"
         ret += f"  Flexural Rigidity (D): {self.D:.2f} Nm²\n"
         ret += f"  Shear Rigidity (S): {self.sandwich.S:.2f} Nm²\n"
+        ret += f"  Maximum Bending Moment (Distributed Load): {self.max_bending_moment_distributed_load:.2f} Nm\n"
+        ret += f"  Maximum Shear Force (Distributed Load): {self.max_shear_force_distributed_load:.2f} N\n"
+        ret += f"  Maximum Deflection (Distributed Load): {self.delta_max_distributed_load:.2f} m\n"
+        ret += f"  Maximum Bending Moment (Point Load): {self.max_bending_moment_point_load:.2f} Nm\n"
+        ret += f"  Maximum Shear Force (Point Load): {self.max_shear_force_point_load:.2f} N\n"
+        ret += f"  Maximum Deflection (Point Load): {self.delta_max_point_load:.2f} m\n"
         return ret

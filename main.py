@@ -73,7 +73,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=90,  # degrees 
-        thickness=6. #mm
+        thickness=8. #mm
     )
     #print(lamina90)
 
@@ -121,39 +121,34 @@ def main():
     # 3. Create sandwich & panel
     sandwich = Sandwich(
         composite_material=laminate,
-        core_material=divinycell_H100,
-        tc=0.200  # m # Assuming core thickness unit is meters based on panel dimensions
+        core_material=divinycell_H45,
+        tc=200 # mm # Assuming core thickness unit is meters based on panel dimensions
     )
+    # print(f"Composite equivalent elastic modulus: {sandwich.composite_material.E} Pa")
+    # print(sandwich)
 
-    print(sandwich)
-
+    #requirements:
+    # total thickness of the panel (tf + tc) <= 250 mm
+    # able to withstand a point load of 2000 kg * 9.81 m/s² 
+    # able to wistand distributed load of 5000 kg * 9.81 m/s²
+    #max deflection of panel <= 40 mm
+    point_load = 2000  * 9.81 # N
+    uniform_load = 5000 * 9.81 #N/m²
     panel = Panel(
         sandwich=sandwich,
         width=4.200,  # m
-        length=4.000   # m
+        length=4,   # m
+        point_load=point_load,  # N
+        distributed_load=uniform_load  # N/m²
     )
 
+    print(f"panel:\n{panel}")
 
-    # 4. Perform calculations
-    panel_weight = panel.calculate_weight()
-    print(f"Panel weight: {panel_weight:.4f} N")
-    
-    # Calculate deflection with uniform load, assuming a uniform load of 5000 N/m²
-    uniform_load = 5000 * 9.81 #N/m²
-    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_distributed_load(load=uniform_load)  # m
-    print(f"Panel midlength deflection with uniform load: {delta_max:.4f} m")
-    print(f"Panel max shear force with uniform load: {max_shear_force:.4f} N")
-    print(f"Panel max bending moment with uniform load: {max_bending_moment:.4f} Nm")
-
-    # Calculate deflection with point load at midlength, assuming a point load of 2000 N without areal distribution
-    point_load = 2000  * 9.81 # N
-    delta_max, max_shear_force, max_bending_moment = panel.calculate_beam_response_point_load(load=point_load)  # m
-    print(f"Panel midlength deflection with point load: {delta_max:.4f} m")
-    print(f"Panel max shear force with point load: {max_shear_force:.4f} N")
-    print(f"Panel max bending moment with point load: {max_bending_moment:.4f} Nm")   
-
-    
-    print(panel)
+    panel.check_against_face_failure()
+    panel.check_against_core_shear_failure()
+    panel.check_against_face_wrinkling()
+    panel.check_against_core_compression_failure()
+    # print(panel)
 
 
     # # 3. Create bridge
