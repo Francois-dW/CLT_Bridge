@@ -23,7 +23,7 @@ class Panel:
         # Calculate basic properties
         self.area = self.width * self.length  # m²
         self.total_thickness = ((2 * self.sandwich.tf) + self.sandwich.tc)* 1e-3  # m
-        self.volume = self.area * self.total_thickness  # m³
+        self.volume = self.area * self.total_thickness * 1e-3 # m³
         
         # Calculate panel properties
         self.D = self.sandwich.D  # Flexural rigidity
@@ -124,32 +124,32 @@ class Panel:
 
         return delta_max, max_shear_force, max_bending_moment
 
-    def check_against_face_failure(self) -> float:
-        """
-        Calculate the safety factor for face failure due to normal stress.
+    # def check_against_face_failure(self) -> float:
+    #     """
+    #     Calculate the safety factor for face failure due to normal stress.
         
-        Parameters:
-        -----------
-        load : float
-            Uniform load in N/m²
+    #     Parameters:
+    #     -----------
+    #     load : float
+    #         Uniform load in N/m²
         
-        Returns:
-        --------
-        float
-            Safety factor for face failure
-        """
-        max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)  # Nm
+    #     Returns:
+    #     --------
+    #     float
+    #         Safety factor for face failure
+    #     """
+    #     max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)  # Nm
     
-        d = self.sandwich.d  # m
-        tf = self.sandwich.tf  # Face thickness (m)
-        sigma_f_max = self.sandwich.composite_material.sigma_f_max  # Maximum allowable face stress (Pa) TODO: Check if this is correct
+    #     d = self.sandwich.d  # m
+    #     tf = self.sandwich.tf  # Face thickness (m)
+    #     sigma_f_max = self.sandwich.composite_material.sigma_f_max  # Maximum allowable face stress (Pa) TODO: Check if this is correct
         
-        # Maximum normal stress in faces
-        sigma_max = (max_bending_moment * d) / (2 * self.D)
+    #     # Maximum normal stress in faces
+    #     sigma_max = (max_bending_moment * d) / (2 * self.D)
         
-        # Safety factor for face failure
-        safety_factor = sigma_f_max / abs(sigma_max)
-        return safety_factor
+    #     # Safety factor for face failure
+    #     safety_factor = sigma_f_max / abs(sigma_max)
+    #     return safety_factor
 
     def check_against_core_shear_failure(self,) -> float:
         """
@@ -279,8 +279,8 @@ class Panel:
         ret += f"  Shear Rigidity (S): {self.sandwich.S:.2f} Nm²\n"
         ret += f"  Maximum Bending Moment (Distributed Load): {self.max_bending_moment_distributed_load:.2f} Nm\n"
         ret += f"  Maximum Shear Force (Distributed Load): {self.max_shear_force_distributed_load:.2f} N\n"
-        ret += f"  Maximum Deflection (Distributed Load): {self.delta_max_distributed_load:.2f} m\n"
+        ret += f"  Maximum Deflection (Distributed Load): {self.delta_max_distributed_load} m\n"
         ret += f"  Maximum Bending Moment (Point Load): {self.max_bending_moment_point_load:.2f} Nm\n"
         ret += f"  Maximum Shear Force (Point Load): {self.max_shear_force_point_load:.2f} N\n"
-        ret += f"  Maximum Deflection (Point Load): {self.delta_max_point_load:.2f} m\n"
+        ret += f"  Maximum Deflection (Point Load): {self.delta_max_point_load} m\n"
         return ret
