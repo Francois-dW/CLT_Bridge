@@ -128,7 +128,7 @@ class Panel:
 
         return delta_max, max_shear_force, max_bending_moment
 
-    def check_against_face_failure(self, print_values : False) -> float:
+    def check_against_face_failure(self, print_values=False) -> float:
         """
         Calculate the safety factor for face failure due to normal stress.
         
@@ -136,6 +136,8 @@ class Panel:
         -----------
         load : float
             Uniform load in N/m²
+        print_values : bool
+            If True, print the values for each ply
          
 
         Returns:
@@ -148,7 +150,7 @@ class Panel:
 
         d = self.sandwich.d  # m
         loading_laminate_bottom = Load(
-            Nx=max_bending_moment / d,  # Normal force in x-direction (N/m²)
+            Nx=max_bending_moment / (d*1e-3),  # Normal force in x-direction (N/m²)
             Ny=0,  # Normal force in y-direction (N/m²)
             Nxy=0,  # Shear force in xy-plane (N/m²)
             Mx=0,  # Bending moment about x-axis (Nm/m²)
@@ -156,7 +158,7 @@ class Panel:
             Mxy=0   # Twisting moment (Nm/m²)
         )
         loading_laminate_top = Load(
-            Nx=-(max_bending_moment / d),  # Normal force in x-direction (N/m²)
+            Nx=-(max_bending_moment / (d*1e-3)),  # Normal force in x-direction (N/m²)
             Ny=0,  # Normal force in y-direction (N/m²)
             Nxy=0,  # Shear force in xy-plane (N/m²)
             Mx=0,  # Bending moment about x-axis (Nm/m²)
@@ -203,7 +205,6 @@ class Panel:
                 print(f"  Tsai-Hill top: {values_tsai_hill_top[i]}")
                 print(f"  Tsai-Hill bottom: {values_tsai_hill_bottom[i]}")
                 print()
-
 
     def check_against_core_shear_failure(self,) -> float:
         """

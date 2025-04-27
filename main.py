@@ -72,7 +72,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=90,  # degrees 
-        thickness=4. #mm
+        thickness=2 #mm
     )
     #print(lamina90)
 
@@ -90,7 +90,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=45,  # degrees
-        thickness=2.
+        thickness=1.
     )
 
     lamina_45 = Lamina(
@@ -107,17 +107,20 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=-45,  # degrees
-        thickness=2. #mm  
+        thickness=1. #mm  
     )
 
     laminate = Laminate(
         plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45],  # 4 layers of carbon fiber
     )
+    laminate_break = Laminate(
+        plies=[lamina0]  # 4 layers of carbon fiber
+    )
 
     # 3. Create sandwich & panel
     sandwich = Sandwich(
         composite_material=laminate,
-        core_material=divinycell_H45,
+        core_material=divinycell_H200,
         tc=200 # mm # Assuming core thickness unit is meters based on panel dimensions
     )
     # print(f"Composite equivalent elastic modulus: {sandwich.composite_material.E} Pa")

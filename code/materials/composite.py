@@ -171,8 +171,8 @@ class Lamina:
         local_stress : np.array (size 3)
             Stress vector in loca coordinate system [sigma_x, sigma_y, tau_xy]
         """
-        local_strain = np.dot(self.T, global_strain)
-        local_stress = np.dot(self.Q12, local_strain)
+        local_strain = self.T @ global_strain
+        local_stress = self.Q12@ local_strain
         return local_stress
     
     def calculate_global_stress(self, global_strain):
