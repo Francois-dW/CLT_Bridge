@@ -227,7 +227,46 @@ class Panel:
         min_A = point_load / sigma_c_comp
 
         return min_A
-m
+    
+    def calculate_load_vector_point_load_laminate(self) -> np.ndarray:
+        """Calculate the loads in each ply of the sandwich panel.
+        
+        Returns:
+        --------
+        np.ndarray
+            Array of loads in each ply (N)
+        """
+        # Initialize an array to hold the loads in each ply
+        
+        Nx = self.max_bending_moment_point_load / self.sandwich.d
+        Ny = 0
+        Nxy = 0
+        Mx = 0
+        My = 0
+        Mxy = 0
+
+        return np.array([Nx, Ny, Nxy, Mx, My, Mxy])
+    
+    def calculate_load_vector_distributed_load_laminate(self) -> np.ndarray:
+        """Calculate the loads in each ply of the sandwich panel.
+        
+        Returns:
+        --------
+        np.ndarray
+            Array of loads in each ply (N)
+        """
+        # Initialize an array to hold the loads in each ply
+        
+        Nx = self.max_bending_moment_distributed_load / self.sandwich.d
+        Ny = 0
+        Nxy = 0
+        Mx = 0
+        My = 0
+        Mxy = 0
+
+        return np.array([Nx, Ny, Nxy, Mx, My, Mxy])
+    
+
     def __str__(self):
         ret = f"Panel:\n"
         ret += f"  Width: {self.width:.2f} m\n"

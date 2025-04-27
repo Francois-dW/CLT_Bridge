@@ -90,6 +90,30 @@ class Sandwich:
         S = (self.Gc * (self.d/1000) ** 2) / (self.tc/1000)
         return S
     
+    def failure_face(self, moment_y):
+        """Calculates the face failure of the sandwich panel.
+
+        Parameters:
+        ----------
+        moment_y: float
+            The moment in the y direction in Nm.
+
+        Returns:
+        -------
+        """
+        sigma_xx = moment_y / ((self.tf/1000) * (self.d/1000)) # Bending stress in the x direction
+        if sigma_xx >= 0: #tensile failure
+            sigma_t = self.composite_material.sigma_t
+            if sigma_xx >= sigma_t:
+                print(f"Face failure in tension: {sigma_xx} >= {sigma_t}")
+                return True
+        else: #compressive failure
+            sigma_c = self.composite_material.sigma_c
+            if sigma_xx <= -sigma_c:
+                print(f"Face failure in compression: {sigma_xx} <= {-sigma_c}")
+                return True
+
+    
     def __str__(self):
         """Returns a string representation of the Sandwich object."""
         result = f"Sandwich:\n"

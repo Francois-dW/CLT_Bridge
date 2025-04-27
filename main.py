@@ -98,7 +98,8 @@ def main():
         plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45],  # 4 layers of carbon fiber
         density=1900,  # kg/m^3
     )
-
+    print(laminate)
+    
     test_laminate = Laminate(
         plies=[lamina90],  # 4 layers of carbon fiber
         density=1900,  # kg/m^3
@@ -112,6 +113,12 @@ def main():
     )
     # print(f"Composite equivalent elastic modulus: {sandwich.composite_material.E} Pa")
     # print(sandwich)
+
+    #requirements:
+    # total thickness of the panel (tf + tc) <= 250 mm
+    # able to withstand a point load of 2000 kg * 9.81 m/s² 
+    # able to wistand distributed load of 5000 kg * 9.81 m/s²
+    #max deflection of panel <= 40 mm
     point_load = 2000  * 9.81 # N
     uniform_load = 5000 * 9.81 #N/m²
     panel = Panel(
@@ -123,8 +130,6 @@ def main():
     )
 
     print(f"panel:\n{panel}")
-    
-     
 
     panel.check_against_face_failure()
     panel.check_against_core_shear_failure()

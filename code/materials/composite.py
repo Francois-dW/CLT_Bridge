@@ -1,5 +1,6 @@
 import numpy as np
 from code.materials.isotropic import Matrix, Reinforcement
+from code.materials.load import Load
 
 class Lamina:
     def __init__(self, E1, E2, G12, G23, nu12,  sigma_1t, sigma_1c, sigma_2t, sigma_2c, sigma_shear, nu13=None, nu23=None, thickness=None, G13=None,nu21= None, rho=None, angle=0):
@@ -74,6 +75,7 @@ class Lamina:
         self.thickness = thickness  # Thickness of the ply in mm
         self.Q12 = self.get_Q12_matrix()  # Stiffness matrix in local coordinate system
         self.Qxy = self.transform_Qxy_matrix()  # Stiffness matrix in global coordinate system
+        self.T = self.get_T_matrix()  # Transformation matrix for strain transformation
         
     def get_Q12_matrix(self):
         """
@@ -132,6 +134,159 @@ class Lamina:
         Qxy = T@Q12@T.T
         return Qxy
     
+    def get_T_matrix(self):
+        """
+        Build the transformation matrix T that will serve to calculate transform the global strain to local strain
+
+        Parameters:
+        ------------
+        angle : float
+            The angle of the ply in degrees
+
+        Returns:
+        ---------
+        T : np.array (size 3x3)
+            The transformation matrix
+        """
+        c = np.cos(np.radians(self.angle))
+        s = np.sin(np.radians(self.angle))
+        T = np.array([
+            [c**2, s**2, c*s],
+            [s**2, c**2, -c*s],
+            [-2*c*s, 2*c*s, c**2 - s**2]
+        ])
+        return T
+    
+    def calculate_local_stress(self, global_strain):
+        """
+        Calculate the local stress in the ply using the global strain and the transformation matrix.
+
+        Parameters:
+        -----------
+        global_strain : np.array (size 3)
+            The strain vector for the ply in the global coordinate system [epsilon_x, epsilon_y, gamma_xy]
+
+        Returns:
+        --------
+        local_stress : np.array (size 3)
+            Stress vector in loca coordinate system [sigma_x, sigma_y, tau_xy]
+        """
+        local_strain = np.dot(self.T, global_strain)
+        local_stress = np.dot(self.Q12, local_strain)
+        return local_stress
+    
+    def calculate_global_stress(self, global_strain):
+        """
+        Calculate the global stress in the ply using the local strain and the transformation matrix.
+
+        Parameters:
+        -----------
+        global_strain : np.array (size 3)
+            The strain vector for the ply in the global coordinate system [epsilon_x, epsilon_y, gamma_xy]
+
+        Returns:
+        --------
+        global_stress : np.array (size 3)
+            The global stress vector [sigma_x, sigma_y, tau_xy]
+        """
+        global_stress = self.calculate_local_stress(global_strain)
+        global_stress = np.dot(self.T.T, global_stress)
+        return global_stress
+    
+    def failure_Tsai_Wu(self, global_strain):
+        """
+        Calculate the Tsai-Wu failure criterion for all plies in the laminate.
+
+        Parameters:
+        -----------
+        global_strain : np.array (size 3)
+            The strain vector for the ply in the global coordinate system [epsilon_x, epsilon_y, gamma_xy]
+
+        Returns:
+        --------
+        values : np.array (size n_nodes x n_plies)
+            The value of the Tsai-Wu failure criterion for each ply in the laminate at each node
+        """
+        
+        stresses = self.calculate_local_stress(global_strain)
+        # Gather strengths from this ply
+        F1t = self.sigma_1t
+        F1c = self.sigma_1c
+        F2t = self.sigma_2t
+        F2c = self.sigma_2c
+        F6 = self.sigma_shear
+        f1 = 1 / F1t - 1 / F1c
+        f2 = 1 / F2t - 1 / F2c
+        f11 = 1 / (F1t * F1c)
+        f22 = 1 / (F2t * F2c)
+        f66 = 1 / (F6 ** 2)
+        f12 = -0.5 * np.sqrt(f11 * f22)
+        sigma1 = stresses[0]
+        sigma2 = stresses[1]
+        sigma6 = stresses[2]
+        value = f1 * sigma1 + f2 * sigma2 + f11 * sigma1 ** 2 + f22 * sigma2 ** 2 + f66 * sigma6 ** 2 + 2 * f12 * sigma1 * sigma2
+        return value
+        
+    def failure_Tsai_Hill(self, global_strain):
+        """
+        Calculate the Tsai-Hill failure criterion for this ply using the global strain.
+
+        Parameters:
+        -----------
+        global_strain : np.array (size 3)
+            The strain vector for the ply in the global coordinate system [epsilon_x, epsilon_y, gamma_xy]
+
+        Returns:
+        --------
+        value : float
+            The value of the Tsai-Hill failure criterion
+        """
+        # Calculate local stress from global strain
+        stress = self.calculate_local_stress(global_strain)
+        # Use ply strengths
+        F1t = self.sigma_1t
+        F1c = self.sigma_1c
+        F2t = self.sigma_2t
+        F2c = self.sigma_2c
+        F6 = self.sigma_shear
+
+        F1 = F1t if stress[0] >= 0 else F1c
+        F2 = F2t if stress[1] >= 0 else F2c
+
+        value = (stress[0] ** 2) / (F1 ** 2) + (stress[1] ** 2) / (F2 ** 2) + (stress[2] ** 2) / (F6 ** 2) - (stress[0] * stress[1]) / (F1 ** 2)
+        return value
+    
+    def failure_maximum_stress(self, global_strain): #TODO
+        """
+        Calculate the maximum stress failure criterion for this ply using the global strain.
+
+        Parameters:
+        -----------
+        global_strain : np.array (size 3)
+            The strain vector for the ply in the global coordinate system [epsilon_x, epsilon_y, gamma_xy]
+
+        Returns:
+        --------
+        value : float
+            The value of the maximum stress failure criterion
+        """
+        # Calculate local stress from global strain
+        stress = self.calculate_local_stress(global_strain)
+        # Use ply strengths
+        F1t = self.sigma_1t
+        F1c = self.sigma_1c
+        F2t = self.sigma_2t
+        F2c = self.sigma_2c
+        F6 = self.sigma_shear
+
+        if stress[0] > F1t or stress[0] < F1c:
+            return 1.0            
+        if stress[1] > F2t or stress[1] < F2c:
+            return 1.0
+        if abs(stress[2]) > F6:
+            return 1.0
+        return 0.0
+    
     def __str__(self):
         result = f"Lamina Properties:\n"
         result += f"Angle: {self.angle} degrees\n"
@@ -167,9 +322,8 @@ class Laminate:
         self.A = A
         self.B = B
         self.D = D
-        ABD, inv_ABD = self.calculate_ABD_matrix()
-        self.ABD = ABD
-        self.inv_ABD = inv_ABD
+        self.ABD = np.block([[A, B], [B, D]])
+        self.inv_ABD = np.linalg.inv(self.ABD)
         self.E = self.get_equivalent_elasticity()
         if density is None:
             self.rho = self.get_equivalent_density()
@@ -231,195 +385,12 @@ class Laminate:
             np.append(ply_thicknesses, ply.thickness)
         
         mid_plane = total_thickness / 2
-        height_list = np.zeros(len(self.plies) + 1)
+        height_list = np.zeros(self.n_plies + 1)
         height_list[0] = mid_plane
-        for i in range(1, len(self.plies) + 1):
+        for i in range(1, self.n_plies + 1):
             height_list[i] = height_list[i - 1] - (self.plies[i - 1].thickness)
 
         return height_list
-
-    def calculate_A_B_D_matrices(self):
-        A = np.zeros((3, 3))
-        B = np.zeros((3, 3))
-        D = np.zeros((3, 3))
-
-        # Calculate height list (assuming it's in mm)
-        height_list_mm = self.calculate_height_list()
-        # Convert heights to meters for this specific calculation
-        height_list_m = height_list_mm /1000  # Convert mm to m
-
-        z_index = 1
-        for ply in self.plies:
-            # Assuming ply.Qxy is in Pascals (N/m^2)
-            Qxy = ply.Qxy 
-            
-            # Get heights in meters for the current ply
-            h_k_m = height_list_m[z_index - 1]
-            h_km1_m = height_list_m[z_index]
-
-            # Calculate contributions using meters
-            A += (h_k_m - h_km1_m) * Qxy  # [A] = (m) * (N/m^2) = N/m
-            B += ((h_k_m**2 - h_km1_m**2)/2) * Qxy  # [B] = (m^2) * (N/m^2) = N
-            D += ((h_k_m**3 - h_km1_m**3)/3) * Qxy  # [D] = (m^3) * (N/m^2) = N*m
-            z_index += 1
-         # At the end of the calculate_A_B_D_matrices function, add:
-            
-            tolerance = 1e-9
-            A[np.abs(A) < tolerance] = 0.0
-            B[np.abs(B) < tolerance] = 0.0
-            D[np.abs(D) < tolerance] = 0.0
-        return A, B, D
-
-    def calculate_ABD_matrix(self):
-        A, B, D = self.calculate_A_B_D_matrices()
-        ABD = np.block([[A, B], [B, D]])
-        inv_ABD = np.linalg.inv(ABD)
-        return ABD, inv_ABD
-
-    def calculate_strain(self, stresses):
-        ABD, inv_ABD = self.calculate_ABD_matrix()
-        strain = np.dot(inv_ABD, stresses.to_array())
-        return strain
-
-    def calculate_stresses(self, stresses):
-        strain = self.calculate_strain(stresses)
-        height_list = self.calculate_height_list()
-
-        stresses_mid = np.zeros((len(self.plies), 3))  # Stress at the mid-plane of each ply
-        stresses_top = np.zeros((len(self.plies), 3))  # Stress at the top of each ply
-        stresses_bot = np.zeros((len(self.plies), 3))  # Stress at the bottom of each ply
-
-        z_index = 1
-        for ply in self.plies:
-            theta = np.radians(ply.orientation)
-            c = np.cos(theta)
-            s = np.sin(theta)
-            T = np.array([[c**2, s**2, 2 * c * s],
-                          [s**2, c**2, -2 * c * s],
-                          [-c * s, c * s, c**2 - s**2]])
-            Qxy = ply.stiffness_matrix()[3]
-            strain_top = strain[0:3] + strain[3:6] * height_list[z_index - 1]
-            strain_mid = strain[0:3] + strain[3:6] * ((height_list[z_index - 1] + height_list[z_index]) / 2)
-            strain_bot = strain[0:3] + strain[3:6] * height_list[z_index]
-
-            stress_top_max = np.dot(Qxy, strain_top)
-            stress_mid_max = np.dot(Qxy, strain_mid)
-            stress_bot_max = np.dot(Qxy, strain_bot)
-
-            stress_top = np.dot(T, stress_top_max)
-            stress_mid = np.dot(T, stress_mid_max)
-            stress_bot = np.dot(T, stress_bot_max)
-
-            stresses_mid[z_index - 1] = stress_mid
-            stresses_top[z_index - 1] = stress_top
-            stresses_bot[z_index - 1] = stress_bot
-
-            z_index += 1
-
-        return stresses_mid, stresses_top, stresses_bot
-
-    def print_stresses(self, stresses):
-        stresses_mid, stresses_top, stresses_bot = self.calculate_stresses(stresses)
-        result = "Stress:\n"
-        for i, ply in enumerate(self.plies):
-            result += f"Lamina {i+1}:\n"
-            result += f"  Stress at mid-plane: {stresses_mid[i]} MPa\n"
-            result += f"  Stress at top: {stresses_top[i]} MPa\n"
-            result += f"  Stress at bottom: {stresses_bot[i]} MPa\n"
-        print(result)
-
-    def calculate_stresses_principal(self, stresses):
-        strain = self.calculate_strain(stresses)
-        height_list = self.calculate_height_list()
-
-        stresses_mid = np.zeros((len(self.plies), 3))  # Stress at the mid-plane of each ply
-        stresses_top = np.zeros((len(self.plies), 3))  # Stress at the top of each ply
-        stresses_bot = np.zeros((len(self.plies), 3))  # Stress at the bottom of each ply
-
-        z_index = 1
-        for ply in self.plies:
-            Qxy = ply.stiffness_matrix()[3]
-
-            strain_top = strain[0:3] + (strain[3:6] * height_list[z_index - 1])
-            strain_mid = strain[0:3] + (strain[3:6] * ((height_list[z_index - 1] + height_list[z_index]) / 2))
-            strain_bot = strain[0:3] + (strain[3:6] * height_list[z_index])
-
-            stress_top_max = np.dot(Qxy, strain_top)
-            stress_mid_max = np.dot(Qxy, strain_mid)
-            stress_bot_max = np.dot(Qxy, strain_bot)
-
-            stresses_mid[z_index - 1] = stress_mid_max
-            stresses_top[z_index - 1] = stress_top_max
-            stresses_bot[z_index - 1] = stress_bot_max
-
-            z_index += 1
-
-        return stresses_mid, stresses_top, stresses_bot
-
-    def print_stresses_principal(self, stresses):
-        stresses_mid, stresses_top, stresses_bot = self.calculate_stresses_principal(stresses)
-        result = "Principal Stress:\n"
-        for i, ply in enumerate(self.plies):
-            result += f"Lamina {i+1}:\n"
-            result += f"  Stress at mid-plane: {stresses_mid[i]} MPa\n"
-            result += f"  Stress at top: {stresses_top[i]} MPa\n"
-            result += f"  Stress at bottom: {stresses_bot[i]} MPa\n"
-        print(result)
-
-    def tsai_wu(self, stresses):
-        stresses_mid, stresses_top, stresses_bot = self.calculate_stresses(stresses)
-        tsai_wu_total = 0
-        for i, ply in enumerate(self.plies):
-            F1 = (1 / (ply.sigma_lt * 1e-6)) - (1 / (ply.sigma_cl * 1e-6))
-            F11 = 1 / ((ply.sigma_lt * 1e-6) * (ply.sigma_cl * 1e-6))
-            F2 = (1 / (ply.sigma_tt * 1e-6)) - (1 / (ply.sigma_ct * 1e-6))
-            F22 = 1 / ((ply.sigma_tt * 1e-6) * (ply.sigma_ct * 1e-6))
-            F66 = 1 / (ply.tau_lt * 1e-6)**2
-            F12 = -np.sqrt(F11 * F22) / 2
-            sigma_x, sigma_y, tau_xy = stresses_mid[i]
-            tsai_wu_value = F1 * sigma_x + F2 * sigma_y + F11 * sigma_x**2 + F22 * sigma_y**2 + F66 * tau_xy**2 + 2 * F12 * sigma_x * sigma_y
-            tsai_wu_total += tsai_wu_value
-            if tsai_wu_value >= 1:
-                print(f"Lamina {i+1} has failed by Tsai-Wu criterion")
-            print(f"Tsai-Wu Lamina {i+1}: {tsai_wu_value}")
-        if tsai_wu_total >= 1:
-            print(f"Laminate has failed by Tsai-Wu criterion, total: {tsai_wu_total}")
-        else:
-            print(f"Tsai-Wu total {tsai_wu_total}")
-
-    def print_tsai_wu_factors(self):
-        for i, ply in enumerate(self.plies):
-            F1 = (1 / (ply.sigma_lt * 1e-6)) - (1 / (ply.sigma_cl * 1e-6))
-            F11 = 1 / ((ply.sigma_lt * 1e-6) * (ply.sigma_cl * 1e-6))
-            F2 = (1 / (ply.sigma_tt * 1e-6)) - (1 / (ply.sigma_ct * 1e-6))
-            F22 = 1 / ((ply.sigma_tt * 1e-6) * (ply.sigma_ct * 1e-6))
-            F66 = 1 / (ply.tau_lt * 1e-6)**2
-            F12 = -np.sqrt(F11 * F22) / 2
-            print(f"Lamina {i+1}:")
-            print(f"F1: {F1}")
-            print(f"F11: {F11}")
-            print(f"F12: {F12}")
-            print(f"F2: {F2}")
-            print(f"F22: {F22}")
-            print(f"F66: {F66}")
-            print(f"total: {F1 + F2 + F11 + F22 + F66 + 2 * F12}")
-
-    def __str__(self):
-        np.set_printoptions(precision=4, suppress=False, formatter={'float_kind':lambda x: f"{x:.4e}"})
-        result = "Laminate Characteristics:\n"
-        result += f"Total Thickness: {self.total_thickness} mm\n"
-        result += f"Number of Plies: {self.n_plies}\n"
-        result += f"Density: {self.rho} kg/m^3\n"
-        result += f"Equivalent Elasticity Modulus: {self.E:.4e} Pa\n"
-        result += f"Plies:\n"
-        result += f"thicknesses: {np.array2string(self.ply_thicknesses, separator=', ')} mm\n"
-        result += f"plies list thicknesses: {np.array2string(self.calculate_height_list(), separator=', ')} mm\n"
-        result += f"\nMatrix A:\n{self.A}\n"
-        result += f"\nMatrix B:\n{self.B}\n"
-        result += f"\nMatrix D:\n{self.D}\n"
-        result += f"\nABD Matrix:\n{self.ABD}\n"
-        result += f"\nInverse ABD Matrix:\n{self.inv_ABD}\n"
-        return result
     
     def get_equivalent_elasticity(self):
         """
@@ -466,27 +437,115 @@ class Laminate:
         rho_laminate /= self.total_thickness
         return rho_laminate
 
-class Stress:
-    def __init__(self, Nx=0, Ny=0, Nxy=0, Mx=0, My=0, Mxy=0):
-        self.Nx = Nx  # Normal force in x-direction (N/mm)
-        self.Ny = Ny  # Normal force in y-direction (N/mm)
-        self.Nxy = Nxy  # Shear force in xy-plane (N/mm)
-        self.Mx = Mx  # Bending moment about x-axis (Nmm)
-        self.My = My  # Bending moment about y-axis (Nmm)
-        self.Mxy = Mxy  # Twisting moment (Nmm)
+    def calculate_A_B_D_matrices(self):
+        A = np.zeros((3, 3))
+        B = np.zeros((3, 3))
+        D = np.zeros((3, 3))
+
+        # Calculate height list (assuming it's in mm)
+        height_list_mm = self.calculate_height_list()
+        # Convert heights to meters for this specific calculation
+        height_list_m = height_list_mm /1000  # Convert mm to m
+
+        z_index = 1
+        for ply in self.plies:
+            # Assuming ply.Qxy is in Pascals (N/m^2)
+            Qxy = ply.Qxy 
+            
+            # Get heights in meters for the current ply
+            h_k_m = height_list_m[z_index - 1]
+            h_km1_m = height_list_m[z_index]
+
+            # Calculate contributions using meters
+            A += (h_k_m - h_km1_m) * Qxy  # [A] = (m) * (N/m^2) = N/m
+            B += ((h_k_m**2 - h_km1_m**2)/2) * Qxy  # [B] = (m^2) * (N/m^2) = N
+            D += ((h_k_m**3 - h_km1_m**3)/3) * Qxy  # [D] = (m^3) * (N/m^2) = N*m
+            z_index += 1
+         # At the end of the calculate_A_B_D_matrices function, add:
+            
+            tolerance = 1e-9
+            A[np.abs(A) < tolerance] = 0.0
+            B[np.abs(B) < tolerance] = 0.0
+            D[np.abs(D) < tolerance] = 0.0
+        return A, B, D
+
+    def calculate_strain_mid(self, loads):
+        """
+        Calculate the strain at the mid-plane of the laminate using the inverse ABD matrix and loads.
+
+        parameters:
+        -----------
+        loads : Load object
+            The applied loads and moments.
+
+        returns:
+        --------
+        strain_middle_plane : np.array (size 6)
+            The strain at the mid-plane of the laminate with first 3 components being strain and last 3 components being curvature.
+        """
+
+        strain_middle_plane = np.dot(self.inv_ABD, loads.array)
+        return strain_middle_plane
+    
+    def calculate_strain(self, loads):
+        """
+        Calculate the strain in each ply of the laminate based on the applied loads.
+        
+        Parameters:
+        -----------
+        loads : Load object
+            The applied loads and moments.
+
+        Returns:
+        --------
+        strain : np.array (size n_plies x 3)
+            The strain in each ply of the laminate.
+        """
+        strain_middle_plane = self.calculate_strain_mid(loads)
+        strain = strain_middle_plane[0:3]
+        curvature = strain_middle_plane[3:6]
+        height_list = self.calculate_height_list()
+        strain = np.zeros(self.n_plies, 3)  # Initialize strain array for each ply
+        for i in range(1, self.n_plies+1):
+            z_k = height_list[i - 1]
+            z_km1 = height_list[i]
+            strain[i - 1] = strain_middle_plane[0:3] + (curvature * (z_k - (z_km1 + z_k) / 2))
+        return strain
+
+    def print_stresses(self, loads):
+        stresses_mid, stresses_top, stresses_bot = self.calculate_stresses(loads)
+        result = "Stress:\n"
+        for i, ply in enumerate(self.plies):
+            result += f"Lamina {i+1}:\n"
+            result += f"  Stress at mid-plane: {stresses_mid[i]} MPa\n"
+            result += f"  Stress at top: {stresses_top[i]} MPa\n"
+            result += f"  Stress at bottom: {stresses_bot[i]} MPa\n"
+        print(result)
+
+    def tsai_wu(self, loads): #TODO
+        return None
+
+    def print_tsai_wu_factors(self): #TODO
+        return None
 
     def __str__(self):
-        result = "Stresses and Moments:\n"
-        result += f"Nx = {self.Nx:.4e} N/mm\n"
-        result += f"Ny = {self.Ny:.4e} N/mm\n"
-        result += f"Nxy = {self.Nxy:.4e} N/mm\n"
-        result += f"Mx = {self.Mx:.4e} Nmm\n"
-        result += f"My = {self.My:.4e} Nmm\n"
-        result += f"Mxy = {self.Mxy:.4e} Nmm\n"
+        np.set_printoptions(precision=4, suppress=False, formatter={'float_kind':lambda x: f"{x:.4e}"})
+        result = "Laminate Characteristics:\n"
+        result += f"Total Thickness: {self.total_thickness} mm\n"
+        result += f"Number of Plies: {self.n_plies}\n"
+        result += f"Density: {self.rho} kg/m^3\n"
+        result += f"Equivalent Elasticity Modulus: {self.E:.4e} Pa\n"
+        result += f"Plies:\n"
+        result += f"thicknesses: {np.array2string(self.ply_thicknesses, separator=', ')} mm\n"
+        result += f"plies list thicknesses: {np.array2string(self.calculate_height_list(), separator=', ')} mm\n"
+        result += f"\nMatrix A:\n{self.A}\n"
+        result += f"\nMatrix B:\n{self.B}\n"
+        result += f"\nMatrix D:\n{self.D}\n"
+        result += f"\nABD Matrix:\n{self.ABD}\n"
+        result += f"\nInverse ABD Matrix:\n{self.inv_ABD}\n"
         return result
-
-    def to_array(self):
-        return np.array([self.Nx, self.Ny, self.Nxy, self.Mx, self.My, self.Mxy])
+    
+    
 
 # Example usage of the library
 if __name__ == "__main__":
@@ -498,8 +557,8 @@ if __name__ == "__main__":
     ply = Lamina(matrix, reinforcement, fiber_volume_ratio=0.4, fiber_areal_weight=200, orientation=45,
               sigma_lt=2978e6, sigma_tt=36e6, sigma_cl=2100e6, sigma_ct=200e6, tau_lt=70e6)
 
-    # Define applied stresses and moments
-    stresses = Stress(Nx=80, My=10)
+    # Define applied loads and moments
+    loads = Load(Nx=80, My=10)
 
     # Define the laminate with a single ply
     laminate = Laminate([ply])
@@ -510,11 +569,11 @@ if __name__ == "__main__":
     print("Q:\n", Q)
     print("Qxy:\n", Qxy)
 
-    # Calculate and print stresses
-    laminate.print_stresses(stresses)
+    # Calculate and print loads
+    laminate.print_stresses(loads)
 
     # Calculate and print Tsai-Wu failure criterion
-    laminate.tsai_wu(stresses)
+    laminate.tsai_wu(loads)
 
 
 
