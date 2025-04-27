@@ -440,7 +440,7 @@ class Laminate:
             D[np.abs(D) < tolerance] = 0.0
         return A, B, D
 
-    def calculate_strain_mid(self, loads):
+    def calculate_strain_mid(self, loads: Load):
         """
         Calculate the strain at the mid-plane of the laminate using the inverse ABD matrix and loads.
 
@@ -458,7 +458,7 @@ class Laminate:
         strain_middle_plane = np.dot(self.inv_ABD, loads.array)
         return strain_middle_plane
     
-    def calculate_strain(self, loads):
+    def calculate_strain(self, loads: Load):
         """
         Calculate the strain in each ply of the laminate based on the applied loads.
         
@@ -476,14 +476,14 @@ class Laminate:
         strain = strain_middle_plane[0:3]
         curvature = strain_middle_plane[3:6]
         height_list = self.calculate_height_list()
-        strain = np.zeros(self.n_plies, 3)  # Initialize strain array for each ply
+        strain = np.zeros((self.n_plies, 3))  # Initialize strain array for each ply
         for i in range(1, self.n_plies+1):
             z_k = height_list[i - 1]
             z_km1 = height_list[i]
             strain[i - 1] = strain_middle_plane[0:3] + (curvature * (z_k - (z_km1 + z_k) / 2))
         return strain
 
-    def tsai_wu_laminate(self, loads):
+    def tsai_wu_laminate(self, loads: Load):
         """
         Calculate the Tsai-Wu failure criterion for all plies in the laminate.
 
@@ -501,7 +501,7 @@ class Laminate:
         """
         #initialize the failure variable to False
         failure = False
-        values = np.zeros(self.n_plies, 3)  # Initialize values array for each ply
+        values = np.zeros((self.n_plies, 3))  # Initialize values array for each ply
         # Calculate the strain of the laminate at each ply
         strain_global = self.calculate_strain(loads)
         for i, ply in enumerate(self.plies):
@@ -514,7 +514,7 @@ class Laminate:
                 failure = True
         return values, failure
     
-    def tsai_hill_laminate(self, loads):
+    def tsai_hill_laminate(self, loads: Load):
         """
         Calculate the Tsai-Hill failure criterion for all plies in the laminate.
 
@@ -532,7 +532,7 @@ class Laminate:
         """
         #initialize the failure variable to False
         failure = False
-        values = np.zeros(self.n_plies, 3)
+        values = np.zeros((self.n_plies, 3))
 
         # Calculate the strain of the laminate at each ply
         strain_global = self.calculate_strain(loads)
@@ -546,7 +546,7 @@ class Laminate:
                 failure = True
         return values, failure
     
-    def maximum_stress_laminate(self, loads):
+    def maximum_stress_laminate(self, loads: Load):
         """
         Calculate the maximum stress failure criterion for all plies in the laminate.
 
@@ -577,7 +577,7 @@ class Laminate:
                     print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[0]:.4e} compared to {ply.sigma_1t:.4e} the tensile strength in the fiber direction")
                     failure = True
             else:
-                if local_stress[0] < ply.sigma_1c:
+                if abs(local_stress[0]) > ply.sigma_1c:
                     print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[0]:.4e} compared to {ply.sigma_1c:.4e} the compressive strength in the fiber direction")
                     failure = True
             if local_stress[1] > 0:
@@ -585,7 +585,7 @@ class Laminate:
                     print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[1]:.4e} compared to {ply.sigma_2t:.4e} the tensile strength in the transverse direction")
                     failure = True
             else:
-                if local_stress[1] < ply.sigma_2c:
+                if abs(local_stress[1]) > ply.sigma_2c:
                     print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[1]:.4e} compared to {ply.sigma_2c:.4e} the compressive strength in the transverse direction")
                     failure = True
             if abs(local_stress[2]) > ply.sigma_shear:
@@ -594,7 +594,7 @@ class Laminate:
             
         return failure
     
-    def print_local_stresses(self, loads):
+    def print_local_stresses(self, loads: Load):
         """
         Print the stresses in the each lamina.
 
@@ -608,7 +608,7 @@ class Laminate:
             local_stress = ply.calculate_local_stress(strain[i])
             print(f"Lamina {i+1} local stress:\n{local_stress}\n")
     
-    def print_global_stresses(self, loads):
+    def print_global_stresses(self, loads: Load):
         """
         Print the stresses and moments in each lamina.
 
