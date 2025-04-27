@@ -1,6 +1,6 @@
 import numpy as np
 from ..materials.sandwich import Sandwich
-
+from code.materials.load import Load
 class Panel:
     def __init__(self, sandwich: Sandwich, width: float, length: float, point_load: float = 0.0, distributed_load: float = 0.0):
         """Initialize a panel made of sandwich material.
@@ -138,18 +138,62 @@ class Panel:
         float
             Safety factor for face failure
         """
-        max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)  # Nm
-    
+        
+        # Calculate the maximum normal stress in the faces due to bending
+        max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)
+
         d = self.sandwich.d  # m
-        tf = self.sandwich.tf  # Face thickness (m)
-        sigma_f_max = self.sandwich.composite_material.sigma_f_max  # Maximum allowable face stress (Pa) TODO: Check if this is correct
-        
-        # Maximum normal stress in faces
-        sigma_max = (max_bending_moment * d) / (2 * self.D)
-        
-        # Safety factor for face failure
-        safety_factor = sigma_f_max / abs(sigma_max)
-        return safety_factor
+        loading_laminate_bottom = Load(
+            Nx=max_bending_moment / d,  # Normal force in x-direction (N/m²)
+            Ny=0,  # Normal force in y-direction (N/m²)
+            Nxy=0,  # Shear force in xy-plane (N/m²)
+            Mx=0,  # Bending moment about x-axis (Nm/m²)
+            My=0,  # Bending moment about y-axis (Nm/m²)
+            Mxy=0   # Twisting moment (Nm/m²)
+        )
+        loading_laminate_top = Load(
+            Nx=-(max_bending_moment / d),  # Normal force in x-direction (N/m²)
+            Ny=0,  # Normal force in y-direction (N/m²)
+            Nxy=0,  # Shear force in xy-plane (N/m²)
+            Mx=0,  # Bending moment about x-axis (Nm/m²)
+            My=0,  # Bending moment about y-axis (Nm/m²)
+            Mxy=0   # Twisting moment (Nm/m²)
+        )
+
+        # Calculate the Tsai-Wu, Tsai-Hill, and Maximum Stress criteria for both bottom and top faces
+
+        # Bottom face (tension)
+        values_tsai_wu_bottom, failure_tsai_wu_bottom = self.sandwich.composite_material.tsai_wu_laminate(loading_laminate_bottom)
+        values_tsai_hill_bottom, failure_tsai_hill_bottom = self.sandwich.composite_material.tsai_hill_laminate(loading_laminate_bottom)
+        failure_max_bottom = self.sandwich.composite_material.maximum_stress_laminate(loading_laminate_bottom)
+
+        # Top face (compression)
+        values_tsai_wu_top, failure_tsai_wu_top = self.sandwich.composite_material.tsai_wu_laminate(loading_laminate_top)
+        values_tsai_hill_top, failure_tsai_hill_top = self.sandwich.composite_material.tsai_hill_laminate(loading_laminate_top)
+        failure_max_top = self.sandwich.composite_material.maximum_stress_laminate(loading_laminate_top)
+
+        if failure_tsai_wu_bottom:
+            print("Failure in the bottom laminate according to Tsai-Wu criterion")
+            print(f"Values: {values_tsai_wu_bottom}")
+
+        if failure_tsai_hill_bottom:
+            print("Failure in the bottom laminate according to Tsai-Hill criterion")
+            print(f"Values: {values_tsai_hill_bottom}")
+
+        if failure_max_bottom:
+            print("Failure in the bottom laminate according to Maximum Stress criterion")
+
+        if failure_tsai_wu_top:
+            print("Failure in the top laminate according to Tsai-Wu criterion")
+            print(f"Values: {values_tsai_wu_top}")
+
+        if failure_tsai_hill_top:
+            print("Failure in the top laminate according to Tsai-Hill criterion")
+            print(f"Values: {values_tsai_hill_top}")
+
+        if failure_max_top:
+            print("Failure in the top laminate according to Maximum Stress criterion")
+
 
     def check_against_core_shear_failure(self,) -> float:
         """
