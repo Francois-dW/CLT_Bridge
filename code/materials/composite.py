@@ -256,36 +256,7 @@ class Lamina:
         value = (stress[0] ** 2) / (F1 ** 2) + (stress[1] ** 2) / (F2 ** 2) + (stress[2] ** 2) / (F6 ** 2) - (stress[0] * stress[1]) / (F1 ** 2)
         return value
     
-    def failure_maximum_stress(self, global_strain): #TODO
-        """
-        Calculate the maximum stress failure criterion for this ply using the global strain.
-
-        Parameters:
-        -----------
-        global_strain : np.array (size 3)
-            The strain vector for the ply in the global coordinate system [epsilon_x, epsilon_y, gamma_xy]
-
-        Returns:
-        --------
-        value : float
-            The value of the maximum stress failure criterion
-        """
-        # Calculate local stress from global strain
-        stress = self.calculate_local_stress(global_strain)
-        # Use ply strengths
-        F1t = self.sigma_1t
-        F1c = self.sigma_1c
-        F2t = self.sigma_2t
-        F2c = self.sigma_2c
-        F6 = self.sigma_shear
-
-        if stress[0] > F1t or stress[0] < F1c:
-            return 1.0            
-        if stress[1] > F2t or stress[1] < F2c:
-            return 1.0
-        if abs(stress[2]) > F6:
-            return 1.0
-        return 0.0
+    
     
     def __str__(self):
         result = f"Lamina Properties:\n"
@@ -512,21 +483,146 @@ class Laminate:
             strain[i - 1] = strain_middle_plane[0:3] + (curvature * (z_k - (z_km1 + z_k) / 2))
         return strain
 
-    def print_stresses(self, loads):
-        stresses_mid, stresses_top, stresses_bot = self.calculate_stresses(loads)
-        result = "Stress:\n"
+    def tsai_wu_laminate(self, loads):
+        """
+        Calculate the Tsai-Wu failure criterion for all plies in the laminate.
+
+        Parameters:
+        -----------
+        loads : Load object
+            The applied loads and moments.
+        
+        returns:
+        --------
+        values : np.array (size n_plies x 3)
+            The value of the Tsai-Wu failure criterion for each ply in the laminate at each node
+        failure : bool
+            True if any ply fails, False otherwise.
+        """
+        #initialize the failure variable to False
+        failure = False
+        values = np.zeros(self.n_plies, 3)  # Initialize values array for each ply
+        # Calculate the strain of the laminate at each ply
+        strain_global = self.calculate_strain(loads)
         for i, ply in enumerate(self.plies):
-            result += f"Lamina {i+1}:\n"
-            result += f"  Stress at mid-plane: {stresses_mid[i]} MPa\n"
-            result += f"  Stress at top: {stresses_top[i]} MPa\n"
-            result += f"  Stress at bottom: {stresses_bot[i]} MPa\n"
-        print(result)
+            # Calculate Tsai-Wu failure criterion for each ply
+            value = ply.failure_Tsai_Wu(strain_global[i])
+            values[i] = value
+            # Check if the Tsai-Wu criterion value exceeds 1.0 (failure condition)
+            if value >= 1.0:
+                print(f"Failure in Lamina {i+1}: Tsai-Wu criterion value = {value:.4e}")
+                failure = True
+        return values, failure
+    
+    def tsai_hill_laminate(self, loads):
+        """
+        Calculate the Tsai-Hill failure criterion for all plies in the laminate.
 
-    def tsai_wu(self, loads): #TODO
-        return None
+        Parameters:
+        -----------
+        loads : Load object
+            The applied loads and moments.
+        
+        returns:
+        --------
+        values : np.array (size n_plies x 3)
+            The value of the Tsai-Hill failure criterion for each ply in the laminate at each node
+        failure : bool
+            True if any ply fails, False otherwise.
+        """
+        #initialize the failure variable to False
+        failure = False
+        values = np.zeros(self.n_plies, 3)
 
-    def print_tsai_wu_factors(self): #TODO
-        return None
+        # Calculate the strain of the laminate at each ply
+        strain_global = self.calculate_strain(loads)
+        for i, ply in enumerate(self.plies):
+            # Calculate Tsai-Hill failure criterion for each ply
+            value = ply.failure_Tsai_Hill(strain_global[i])
+            values[i] = value
+            # Check if the Tsai-Hill criterion value exceeds 1.0 (failure condition)
+            if value >= 1.0:
+                print(f"Failure in Lamina {i+1}: Tsai-Hill criterion value = {value:.4e}")
+                failure = True
+        return values, failure
+    
+    def maximum_stress_laminate(self, loads):
+        """
+        Calculate the maximum stress failure criterion for all plies in the laminate.
+
+        Parameters:
+        -----------
+        loads : Load object
+            The applied loads and moments.
+        
+        returns:
+        --------
+        values : np.array (size n_plies x 3)
+            The value of the maximum stress failure criterion for each ply in the laminate at each node
+        failure : bool
+            True if any ply fails, False otherwise.
+        """
+        #initialize the failure variable to False
+        failure = False
+        # Calculate the strain of the laminate at each ply
+        strain_global = self.calculate_strain(loads)
+
+        for i, ply in enumerate(self.plies):
+            # Calculate local stress from global strain
+            local_stress = ply.calculate_local_stress(strain_global[i])
+
+            #Compare local stresses with ply strengths
+            if local_stress[0] > 0:
+                if local_stress[0] > ply.sigma_1t:
+                    print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[0]:.4e} compared to {ply.sigma_1t:.4e} the tensile strength in the fiber direction")
+                    failure = True
+            else:
+                if local_stress[0] < ply.sigma_1c:
+                    print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[0]:.4e} compared to {ply.sigma_1c:.4e} the compressive strength in the fiber direction")
+                    failure = True
+            if local_stress[1] > 0:
+                if local_stress[1] > ply.sigma_2t:
+                    print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[1]:.4e} compared to {ply.sigma_2t:.4e} the tensile strength in the transverse direction")
+                    failure = True
+            else:
+                if local_stress[1] < ply.sigma_2c:
+                    print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[1]:.4e} compared to {ply.sigma_2c:.4e} the compressive strength in the transverse direction")
+                    failure = True
+            if abs(local_stress[2]) > ply.sigma_shear:
+                print(f"Failure in Lamina {i+1}: Maximum stress criterion value = {local_stress[2]:.4e} compared to {ply.sigma_shear:.4e} the shear strength")
+                failure = True
+            
+        return failure
+    
+    def print_local_stresses(self, loads):
+        """
+        Print the stresses in the each lamina.
+
+        Parameters:
+        -----------
+        loads : Load object
+            The applied loads and moments.
+        """
+        strain = self.calculate_strain(loads)
+        for i, ply in enumerate(self.plies):
+            local_stress = ply.calculate_local_stress(strain[i])
+            print(f"Lamina {i+1} local stress:\n{local_stress}\n")
+    
+    def print_global_stresses(self, loads):
+        """
+        Print the stresses and moments in each lamina.
+
+        Parameters:
+        -----------
+        loads : Load object
+            The applied loads and moments.
+        """
+        strain = self.calculate_strain(loads)
+        for i, ply in enumerate(self.plies):
+            global_stress = ply.calculate_global_stress(strain[i])
+            print(f"Lamina {i+1} global stress:\n{global_stress}\n")
+    
+
 
     def __str__(self):
         np.set_printoptions(precision=4, suppress=False, formatter={'float_kind':lambda x: f"{x:.4e}"})
