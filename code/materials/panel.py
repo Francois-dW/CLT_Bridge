@@ -1,6 +1,6 @@
 import numpy as np
 from ..materials.sandwich import Sandwich
-
+from code.materials.load import Load
 class Panel:
     def __init__(self, sandwich: Sandwich, width: float, length: float, point_load: float = 0.0, distributed_load: float = 0.0):
         """Initialize a panel made of sandwich material.
@@ -29,7 +29,7 @@ class Panel:
         self.D = self.sandwich.D  # Flexural rigidity
         self.S = self.sandwich.S
         self.g = 9.80665  # m/s² (acceleration due to gravity)
-        self.weight = self.calculate_weight()  # N
+        self.core_mass, self.face_mass, self.mass, self.weight = self.calculate_weight()  # N
 
         # Calculate and store distributed load response
         delta_max, max_shear_force, max_bending_moment = self.calculate_beam_response_distributed_load()
@@ -61,9 +61,13 @@ class Panel:
         # Calculate masses kg/m³
         face_mass = 2 * face_volume * self.sandwich.composite_material.rho   # kg
         core_mass = core_volume * self.sandwich.core_material.rho  # kg
+
+        total_mass = face_mass + core_mass  # kg
+        total_weight = (face_mass + core_mass)  * g # N
+
+        print (f"Panel mass: {total_mass} kg")
         
-        total_weight = (face_mass + core_mass) * g  # N 
-        return total_weight
+        return core_mass, face_mass, total_mass, total_weight
     
     def calculate_beam_response_distributed_load(self) -> tuple:
         """Calculate midlength deflection, maximum shear force, and maximum bending moment 
@@ -124,32 +128,76 @@ class Panel:
 
         return delta_max, max_shear_force, max_bending_moment
 
-    # def check_against_face_failure(self) -> float:
-    #     """
-    #     Calculate the safety factor for face failure due to normal stress.
+    def check_against_face_failure(self) -> float:
+        """
+        Calculate the safety factor for face failure due to normal stress.
         
-    #     Parameters:
-    #     -----------
-    #     load : float
-    #         Uniform load in N/m²
-        
-    #     Returns:
-    #     --------
-    #     float
-    #         Safety factor for face failure
-    #     """
-    #     max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)  # Nm
-    
-    #     d = self.sandwich.d  # m
-    #     tf = self.sandwich.tf  # Face thickness (m)
-    #     sigma_f_max = self.sandwich.composite_material.sigma_f_max  # Maximum allowable face stress (Pa) TODO: Check if this is correct
-        
-    #     # Maximum normal stress in faces
-    #     sigma_max = (max_bending_moment * d) / (2 * self.D)
-        
-    #     # Safety factor for face failure
-    #     safety_factor = sigma_f_max / abs(sigma_max)
-    #     return safety_factor
+        Parameters:
+        -----------
+        load : float
+            Uniform load in N/m²
+         
+
+        Returns:
+        --------
+        float
+            Safety factor for face failure
+        """
+        # Calculate the maximum normal stress in the faces due to bending
+        max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)
+
+        d = self.sandwich.d  # m
+        loading_laminate_bottom = Load(
+            Nx=max_bending_moment / d,  # Normal force in x-direction (N/m²)
+            Ny=0,  # Normal force in y-direction (N/m²)
+            Nxy=0,  # Shear force in xy-plane (N/m²)
+            Mx=0,  # Bending moment about x-axis (Nm/m²)
+            My=0,  # Bending moment about y-axis (Nm/m²)
+            Mxy=0   # Twisting moment (Nm/m²)
+        )
+        loading_laminate_top = Load(
+            Nx=-(max_bending_moment / d),  # Normal force in x-direction (N/m²)
+            Ny=0,  # Normal force in y-direction (N/m²)
+            Nxy=0,  # Shear force in xy-plane (N/m²)
+            Mx=0,  # Bending moment about x-axis (Nm/m²)
+            My=0,  # Bending moment about y-axis (Nm/m²)
+            Mxy=0   # Twisting moment (Nm/m²)
+        )
+
+        # Calculate the Tsai-Wu, Tsai-Hill, and Maximum Stress criteria for both bottom and top faces
+
+        # Bottom face (tension)
+        values_tsai_wu_bottom, failure_tsai_wu_bottom = self.sandwich.composite_material.tsai_wu_laminate(loading_laminate_bottom)
+        values_tsai_hill_bottom, failure_tsai_hill_bottom = self.sandwich.composite_material.tsai_hill_laminate(loading_laminate_bottom)
+        failure_max_bottom = self.sandwich.composite_material.maximum_stress_laminate(loading_laminate_bottom)
+
+        # Top face (compression)
+        values_tsai_wu_top, failure_tsai_wu_top = self.sandwich.composite_material.tsai_wu_laminate(loading_laminate_top)
+        values_tsai_hill_top, failure_tsai_hill_top = self.sandwich.composite_material.tsai_hill_laminate(loading_laminate_top)
+        failure_max_top = self.sandwich.composite_material.maximum_stress_laminate(loading_laminate_top)
+
+        if failure_tsai_wu_bottom:
+            print("Failure in the bottom laminate according to Tsai-Wu criterion")
+            print(f"Values: {values_tsai_wu_bottom}")
+
+        if failure_tsai_hill_bottom:
+            print("Failure in the bottom laminate according to Tsai-Hill criterion")
+            print(f"Values: {values_tsai_hill_bottom}")
+
+        if failure_max_bottom:
+            print("Failure in the bottom laminate according to Maximum Stress criterion")
+
+        if failure_tsai_wu_top:
+            print("Failure in the top laminate according to Tsai-Wu criterion")
+            print(f"Values: {values_tsai_wu_top}")
+
+        if failure_tsai_hill_top:
+            print("Failure in the top laminate according to Tsai-Hill criterion")
+            print(f"Values: {values_tsai_hill_top}")
+
+        if failure_max_top:
+            print("Failure in the top laminate according to Maximum Stress criterion")
+
 
     def check_against_core_shear_failure(self,) -> float:
         """
@@ -269,18 +317,21 @@ class Panel:
 
     def __str__(self):
         ret = f"Panel:\n"
-        ret += f"  Width: {self.width:.2f} m\n"
-        ret += f"  Length: {self.length:.2f} m\n"
-        ret += f"  Area: {self.area:.2f} m²\n"
-        ret += f"  Total Thickness: {self.total_thickness:.2f} m\n"
-        ret += f"  Volume: {self.volume:.2f} m³\n"
-        ret += f"  Weight: {self.weight:.2f} N\n"
-        ret += f"  Flexural Rigidity (D): {self.D:.2f} Nm²\n"
-        ret += f"  Shear Rigidity (S): {self.sandwich.S:.2f} Nm²\n"
-        ret += f"  Maximum Bending Moment (Distributed Load): {self.max_bending_moment_distributed_load:.2f} Nm\n"
-        ret += f"  Maximum Shear Force (Distributed Load): {self.max_shear_force_distributed_load:.2f} N\n"
+        ret += f"  Width: {self.width} m\n"
+        ret += f"  Length: {self.length} m\n"
+        ret += f"  Area: {self.area} m²\n"
+        ret += f"  Total Thickness: {self.total_thickness} m\n"
+        ret += f"  Volume: {self.volume} m³\n"
+        ret += f"  Mass: {self.mass} kg\n"
+        ret += f"  Core Mass: {self.core_mass} kg\n"
+        ret += f"  Face Mass: {self.face_mass} kg\n"
+        ret += f"  Total Weight: {self.weight} N\n"
+        ret += f"  Flexural Rigidity (D): {self.D} Nm²\n"
+        ret += f"  Shear Rigidity (S): {self.sandwich.S} Nm²\n"
+        ret += f"  Maximum Bending Moment (Distributed Load): {self.max_bending_moment_distributed_load} Nm\n"
+        ret += f"  Maximum Shear Force (Distributed Load): {self.max_shear_force_distributed_load} N\n"
         ret += f"  Maximum Deflection (Distributed Load): {self.delta_max_distributed_load} m\n"
-        ret += f"  Maximum Bending Moment (Point Load): {self.max_bending_moment_point_load:.2f} Nm\n"
-        ret += f"  Maximum Shear Force (Point Load): {self.max_shear_force_point_load:.2f} N\n"
+        ret += f"  Maximum Bending Moment (Point Load): {self.max_bending_moment_point_load} Nm\n"
+        ret += f"  Maximum Shear Force (Point Load): {self.max_shear_force_point_load} N\n"
         ret += f"  Maximum Deflection (Point Load): {self.delta_max_point_load} m\n"
         return ret

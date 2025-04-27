@@ -48,15 +48,14 @@ def main():
         nu12=0.3,
         G12=2.8e9,    # Pa
         G23=2e9,    # Pa
-        G13=2.8e9,    # Pa
-        rho=1.6,    # g/cm^3
+        rho=1600,    # kg/m^3
         sigma_1t=1100e6,  # Pa
         sigma_1c=600e6,   # Pa
         sigma_2t=20e6,    # Pa
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=0,  # degrees
-        thickness=8 
+        thickness=6 #mm
     )
 
     lamina90 = Lamina(
@@ -66,14 +65,14 @@ def main():
         G12=2.8e9,    # Pa
         G23=2e9,    # Pa
         G13=2.8e9,    # Pa
-        rho=1.6,    # g/cm^3 # Corrected unit comment consistency
+        rho=1600,    # kg/m^3
         sigma_1t=1100e6,  # Pa
         sigma_1c=600e6,   # Pa
         sigma_2t=20e6,    # Pa
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=90,  # degrees 
-        thickness=8. #mm
+        thickness=4. #mm
     )
     #print(lamina90)
 
@@ -84,14 +83,14 @@ def main():
         G12=2.8e9,    # Pa
         G23=2e9,    # Pa
         G13=2.8e9,    # Pa
-        rho=1.6,    # g/cm^3
+        rho=1600,    # kg/m^3
         sigma_1t=1100e6,  # Pa
         sigma_1c=600e6,   # Pa
         sigma_2t=20e6,    # Pa
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=45,  # degrees
-        thickness=4.
+        thickness=2.
     )
 
     lamina_45 = Lamina(
@@ -101,22 +100,19 @@ def main():
         G12=2.8e9,    # Pa
         G23=2e9,    # Pa
         G13=2.8e9,    # Pa
-        rho=1.6,    # g/cm^3
+        rho=1600,    # kg/m^3
         sigma_1t=1100e6,  # Pa
         sigma_1c=600e6,   # Pa
         sigma_2t=20e6,    # Pa
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=-45,  # degrees
-        thickness=4. #mm  
+        thickness=2. #mm  
     )
 
     laminate = Laminate(
         plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45],  # 4 layers of carbon fiber
-        density=1900,  # kg/m^3
     )
-
-
 
     # 3. Create sandwich & panel
     sandwich = Sandwich(
@@ -144,10 +140,10 @@ def main():
 
     print(f"panel:\n{panel}")
 
-    panel.check_against_face_failure()
-    panel.check_against_core_shear_failure()
-    panel.check_against_face_wrinkling()
-    panel.check_against_core_compression_failure()
+    #panel.check_against_face_failure()
+    #panel.check_against_core_shear_failure()
+    #panel.check_against_face_wrinkling()
+    #panel.check_against_core_compression_failure()
     # print(panel)
 
 
