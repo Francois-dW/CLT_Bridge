@@ -16,12 +16,28 @@ from code.materials.panel import Panel
 def main():
     # 1. Create materials
 
-    divinycell = IsotropicMaterial(
-        E=2.5e9,    # Pa
-        nu=0.3,
-        G=1.2e9,    # Pa
-        rho=0.05,   # g/cm^3 # Note: Ensure units are consistent (e.g., kg/m^3)
-        Rm=1e6      # Pa
+    divinycell_H45= IsotropicMaterial(
+        E= 50 * 1e6,    # Pa # Compressive modulus
+        nu=0.4,
+        G=15 * 1e6,    # Pa
+        rho=48 ,   # kg/m^3
+        Rm=0.6 * 1e6      # Pa Compressive Strength 
+    )
+
+    divinycell_H100= IsotropicMaterial(
+        E= 135 * 1e6,    # Pa # Compressive modulus
+        nu=0.4,
+        G=35 * 1e6,    # Pa
+        rho=100 ,   # kg/m^3
+        Rm=2* 1e6      # Pa Compressive Strength 
+    )
+
+    divinycell_H200= IsotropicMaterial(
+        E= 310 * 1e6,    # Pa # Compressive modulus
+        nu=0.4,
+        G=73 * 1e6,    # Pa
+        rho=200 ,   # kg/m^3
+        Rm=5.4 * 1e6      # Pa Compressive Strength 
     )
 
     
@@ -59,7 +75,7 @@ def main():
         angle=90,  # degrees 
         thickness=6. #mm
     )
-    print(lamina90)
+    #print(lamina90)
 
     lamina45 = Lamina(
         E1=39e9,   # Pa
@@ -99,16 +115,17 @@ def main():
         plies=[lamina45, lamina_45, lamina0, lamina90, lamina90, lamina0, lamina_45, lamina45],  # 4 layers of carbon fiber
         density=1900,  # kg/m^3
     )
-    print("laminate:")
-    print(laminate_simple)
+
 
 
     # 3. Create sandwich & panel
     sandwich = Sandwich(
         composite_material=laminate,
-        core_material=divinycell,
+        core_material=divinycell_H100,
         tc=0.200  # m # Assuming core thickness unit is meters based on panel dimensions
     )
+
+    print(sandwich)
 
     panel = Panel(
         sandwich=sandwich,

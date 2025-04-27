@@ -118,7 +118,7 @@ class Panel:
         
         # Maximum deflection at midlength for simply supported beam with point load at center
         delta_max_bend = (load * L**3) / (48 * D)
-        delta_max_shear = (load * L) / 4*S
+        delta_max_shear = (load * L) / (4 * S)
 
         delta_max = delta_max_bend + delta_max_shear  # Total deflection (m)
         
