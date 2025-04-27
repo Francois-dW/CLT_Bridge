@@ -224,7 +224,7 @@ class Lamina:
         sigma1 = stresses[0]
         sigma2 = stresses[1]
         sigma6 = stresses[2]
-        value = f1 * sigma1 + f2 * sigma2 + f11 * sigma1 ** 2 + f22 * sigma2 ** 2 + f66 * sigma6 ** 2 + 2 * f12 * sigma1 * sigma2
+        value = abs(f1 * sigma1 + f2 * sigma2 + f11 * sigma1 ** 2 + f22 * sigma2 ** 2 + f66 * sigma6 ** 2 + 2 * f12 * sigma1 * sigma2)
         return value
         
     def failure_Tsai_Hill(self, global_strain):
@@ -501,7 +501,7 @@ class Laminate:
         """
         #initialize the failure variable to False
         failure = False
-        values = np.zeros((self.n_plies, 3))  # Initialize values array for each ply
+        values = np.zeros(self.n_plies)  # Initialize values array for each ply
         # Calculate the strain of the laminate at each ply
         strain_global = self.calculate_strain(loads)
         for i, ply in enumerate(self.plies):
@@ -532,7 +532,7 @@ class Laminate:
         """
         #initialize the failure variable to False
         failure = False
-        values = np.zeros((self.n_plies, 3))
+        values = np.zeros(self.n_plies)
 
         # Calculate the strain of the laminate at each ply
         strain_global = self.calculate_strain(loads)

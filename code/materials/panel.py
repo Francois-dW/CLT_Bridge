@@ -128,7 +128,7 @@ class Panel:
 
         return delta_max, max_shear_force, max_bending_moment
 
-    def check_against_face_failure(self) -> float:
+    def check_against_face_failure(self, print_values : False) -> float:
         """
         Calculate the safety factor for face failure due to normal stress.
         
@@ -166,19 +166,21 @@ class Panel:
 
         # Calculate the Tsai-Wu, Tsai-Hill, and Maximum Stress criteria for both bottom and top faces
 
-        # Bottom face (tension)
-        values_tsai_wu_bottom, failure_tsai_wu_bottom = self.sandwich.composite_material.tsai_wu_laminate(loading_laminate_bottom)
+        # tsai-wu
+        values_tsai_wu, failure_tsai_wu= self.sandwich.composite_material.tsai_wu_laminate(loading_laminate_bottom)
+
+        # Bottom face (tension) tsai-hill
         values_tsai_hill_bottom, failure_tsai_hill_bottom = self.sandwich.composite_material.tsai_hill_laminate(loading_laminate_bottom)
         failure_max_bottom = self.sandwich.composite_material.maximum_stress_laminate(loading_laminate_bottom)
 
-        # Top face (compression)
-        values_tsai_wu_top, failure_tsai_wu_top = self.sandwich.composite_material.tsai_wu_laminate(loading_laminate_top)
+        # Top face (compression) tsai-hill
+        
         values_tsai_hill_top, failure_tsai_hill_top = self.sandwich.composite_material.tsai_hill_laminate(loading_laminate_top)
         failure_max_top = self.sandwich.composite_material.maximum_stress_laminate(loading_laminate_top)
 
-        if failure_tsai_wu_bottom:
+        if failure_tsai_wu:
             print("Failure in the bottom laminate according to Tsai-Wu criterion")
-            print(f"Values: {values_tsai_wu_bottom}")
+            print(f"Values: {values_tsai_wu}")
 
         if failure_tsai_hill_bottom:
             print("Failure in the bottom laminate according to Tsai-Hill criterion")
@@ -187,16 +189,20 @@ class Panel:
         if failure_max_bottom:
             print("Failure in the bottom laminate according to Maximum Stress criterion")
 
-        if failure_tsai_wu_top:
-            print("Failure in the top laminate according to Tsai-Wu criterion")
-            print(f"Values: {values_tsai_wu_top}")
-
         if failure_tsai_hill_top:
             print("Failure in the top laminate according to Tsai-Hill criterion")
             print(f"Values: {values_tsai_hill_top}")
 
         if failure_max_top:
             print("Failure in the top laminate according to Maximum Stress criterion")
+        
+        if print_values:
+            for i, ply in enumerate(self.sandwich.composite_material.plies):
+                print(f"Ply {i+1} with angle {ply.angle}°:")
+                print(f"  Tsai-Wu: {values_tsai_wu[i]} ")
+                print(f"  Tsai-Hill top: {values_tsai_hill_top[i]}")
+                print(f"  Tsai-Hill bottom: {values_tsai_hill_bottom[i]}")
+                print()
 
 
     def check_against_core_shear_failure(self,) -> float:

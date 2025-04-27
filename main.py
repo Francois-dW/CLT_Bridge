@@ -140,10 +140,11 @@ def main():
 
     print(f"panel:\n{panel}")
 
-    #panel.check_against_face_failure()
-    #panel.check_against_core_shear_failure()
-    #panel.check_against_face_wrinkling()
-    #panel.check_against_core_compression_failure()
+    panel.check_against_face_failure(True)
+    # panel.check_against_core_shear_failure()
+    # panel.check_against_face_wrinkling()
+    # panel.check_against_core_compression_failure()
+    # panel.check_against_face_failure()
     # print(panel)
 
 
