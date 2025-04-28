@@ -206,6 +206,8 @@ class Panel:
                 print(f"  Tsai-Hill bottom: {values_tsai_hill_bottom[i]}")
                 print()
 
+        return values_tsai_wu, failure_tsai_wu, values_tsai_hill_bottom, failure_tsai_hill_bottom, values_tsai_hill_top, failure_tsai_hill_top, failure_max_bottom, failure_max_top
+
     def check_against_core_shear_failure(self,) -> float:
         """
         Calculate the safety factor for core shear failure.
