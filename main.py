@@ -138,7 +138,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=0,  # degrees
-        thickness=6 #mm
+        thickness=5 #mm
     )
 
     lamina90 = Lamina(
@@ -172,8 +172,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=45,  # degrees
-        thickness=0.5
-    )
+        thickness=0.25    )
 
     lamina_45 = Lamina(
         E1=39e9,   # Pa
@@ -189,7 +188,7 @@ def main():
         sigma_2c=140e6,    # Pa
         sigma_shear=70e6,  # Pa
         angle=-45,  # degrees
-        thickness=0.5 #mm
+        thickness=0.25 #mm
     )
 
     laminate = Laminate(
@@ -398,11 +397,11 @@ def main():
 
     good_sandwich = Sandwich(
         composite_material=laminate,
-        core_material=divinycell_H100,
-        tc=75 # mm
+        core_material=divinycell_H130,
+        tc=170 # mm
     )
 
-    good_panel = panel = Panel(
+    good_panel = Panel(
                 sandwich=good_sandwich,
                 width=panel_width,
                 length=panel_length,
@@ -417,7 +416,6 @@ def main():
     print(f"Security Compression: {security_compression}")
     print(f"Security Wrinkling: {security_wrinkling}")
     print(f"Security Shear: {security_shear}")
-    print(good_panel)
-    
+    print(good_panel)   
 if __name__ == "__main__":
     main()
