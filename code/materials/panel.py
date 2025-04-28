@@ -222,8 +222,8 @@ class Panel:
         """
         max_shear_force = max(self.max_shear_force_distributed_load, self.max_shear_force_point_load)  # N
 
-        d = self.sandwich.d  
-        tau_c_max = self.sandwich.core_material.tau_c_max  # Maximum allowable core shear stress (Pa) TODO: Check if this is correct
+        d = self.sandwich.d/1000  # m (convert from mm to m)  
+        tau_c_max = self.sandwich.core_material.sigma_shear  # Maximum allowable core shear stress (Pa) 
         
         # Maximum shear stress in the core
         tau_max = max_shear_force / d
@@ -247,20 +247,21 @@ class Panel:
             Safety factor for face wrinkling failure
         """
         # Calculate the critical wrinkling stress
-        Ef = self.sandwich.composite_material.Ef  # Face modulus of elasticity (Pa)
-        Ec = self.sandwich.core_material.Ec  # core_material modulus of elasticity (Pa)
-        Gc = self.sandwich.core_material.Gc  # core_material shear modulus (Pa)
+        Ef = self.sandwich.composite_material.E  # Face modulus of elasticity (Pa)
+        Ec = self.sandwich.core_material.E  # core_material modulus of elasticity (Pa)
+        Gc = self.sandwich.core_material.G  # core_material shear modulus (Pa)
         
-        sigma_cr = 0.5**3 * np.sqrt(Ef * Ec * Gc)  # Critical wrinkling stress (Pa) WRONG FORMULA
+        sigma_cr = 0.5**3 * np.sqrt(Ef * Ec * Gc)  # Critical wrinkling stress (Pa)
+        print(f"Critical wrinkling stress: {sigma_cr} Pa")
         
         # Maximum normal stress in faces due to bending
         max_bending_moment = max(self.max_bending_moment_distributed_load, self.max_bending_moment_point_load)
 
-        d = self.sandwich.d  # m
-        sigma_max = (max_bending_moment * d) / (2 * self.D)
+        d = self.sandwich.d/1000  # m
+        sigma_max = (max_bending_moment / d) 
         
         # Safety factor for face wrinkling
-        safety_factor = sigma_cr / abs(sigma_max)
+        safety_factor = abs( sigma_cr) / sigma_max 
         return safety_factor
     
     def check_against_core_compression_failure(self) -> float:
@@ -278,10 +279,12 @@ class Panel:
             Safety factor for core compression failure
         """
         point_load = self.point_load
-        sigma_c_comp = self.sandwich.core_material.sigma_comp
-        min_A = point_load / sigma_c_comp
+        sigma_c_comp = self.sandwich.core_material.Rm
+        min_A = point_load / sigma_c_comp 
+        safety_factor = (0.12*0.12)/ min_A
 
-        return min_A
+
+        return safety_factor
     
     def calculate_load_vector_point_load_laminate(self) -> np.ndarray:
         """Calculate the loads in each ply of the sandwich panel.
