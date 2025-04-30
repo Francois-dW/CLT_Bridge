@@ -1,0 +1,29 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: CLT_Bridge
+message: SandwichAnalyzer
+type: software
+authors:
+  - given-names: Leif
+    family-names: Stolte
+  - given-names: François
+    family-names: de Weck
+url: 'https://github.com/Francois-dW/CLT_Bridge'
+abstract: >-
+  The CLT_Bridge project is a computational framework
+  designed for the analysis and optimization of composite
+  laminate and sandwich structures. Leveraging classical
+  laminate theory and advanced failure criteria, the
+  framework enables engineers and researchers to evaluate
+  the mechanical performance of composite materials under
+  various loading conditions. Key features include
+  parametric studies, visualization tools, and support for
+  multiple failure criteria such as Tsai-Wu, Tsai-Hill, and
+  Maximum Stress. The project is modular, allowing for easy
+  integration and extension, and is implemented in Python
+  for accessibility and flexibility. Applications range from
+  aerospace to civil engineering, where lightweight and
+  high-strength materials are critical.
+license: MIT
