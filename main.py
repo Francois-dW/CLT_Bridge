@@ -195,6 +195,152 @@ def main():
         plies=[lamina45, lamina_45, lamina90, lamina0, lamina0, lamina90, lamina_45, lamina45],  # 8 layers
     )
 
+    # Additional design with specified ply thicknesses
+    lamina0_6mm_new = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=0,  # degrees
+        thickness=6 # mm
+    )
+
+    lamina90_4mm_new = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=90,  # degrees
+        thickness=4 # mm
+    )
+
+    lamina45_1mm_new = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=45,  # degrees
+        thickness=1 # mm
+    )
+
+    lamina_45_1mm_new = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=-45,  # degrees
+        thickness=1 # mm
+    )
+
+    laminate_custom_2 = Laminate(
+        plies=[lamina45_1mm_new, lamina_45_1mm_new, lamina90_4mm_new, lamina0_6mm_new, lamina0_6mm_new, lamina90_4mm_new, lamina_45_1mm_new, lamina45_1mm_new],  # 8 layers
+    )
+
+    # Additional design with all ply thicknesses set to 4mm
+    lamina0_4mm = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=0,  # degrees
+        thickness=4 # mm
+    )
+
+    lamina90_4mm = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=90,  # degrees
+        thickness=4 # mm
+    )
+
+    lamina45_4mm = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=45,  # degrees
+        thickness=4 # mm
+    )
+
+    lamina_45_4mm = Lamina(
+        E1=39e9,   # Pa
+        E2=9.8e9,    # Pa
+        nu12=0.3,
+        G12=2.8e9,    # Pa
+        G23=2e9,    # Pa
+        G13=2.8e9,    # Pa
+        rho=1600,    # kg/m^3
+        sigma_1t=1100e6,  # Pa
+        sigma_1c=600e6,   # Pa
+        sigma_2t=20e6,    # Pa
+        sigma_2c=140e6,    # Pa
+        sigma_shear=70e6,  # Pa
+        angle=-45,  # degrees
+        thickness=4 # mm
+    )
+
+    laminate_4mm = Laminate(
+        plies=[lamina45_4mm, lamina_45_4mm, lamina90_4mm, lamina0_4mm, lamina0_4mm, lamina90_4mm, lamina_45_4mm, lamina45_4mm],  # 8 layers
+    )
+
     # 3. Define requirements and loads
     point_load = 2000 * 9.81 # N
     uniform_load = 5000 * 9.81 # N/m²
@@ -209,11 +355,12 @@ def main():
 
     # 5. Run Parametric Study for each foam type
     failures = {foam_name: {'tsai_wu': [], 'tsai_hill': [], 'max_stress': [], 'deflection': []} for foam_name in foams}
+    selected_laminate = laminate_custom_2  # Change this variable to switch laminate designs
     for foam_name, core_material in foams.items():
         print(f"Running analysis for foam: {foam_name}")
         for tc in tc_values:
             sandwich = Sandwich(
-                composite_material=laminate,
+                composite_material=selected_laminate,  # Use the global variable here
                 core_material=core_material,
                 tc=tc
             )
@@ -316,7 +463,7 @@ def main():
     for foam_name, core_material in foams.items():
         for tc in tc_values:
             sandwich = Sandwich(
-                composite_material=laminate,
+                composite_material=selected_laminate,
                 core_material=core_material,
                 tc=tc
             )
@@ -357,7 +504,7 @@ def main():
     for foam_name, core_material in foams.items():
         for tc in tc_values:
             sandwich = Sandwich(
-                composite_material=laminate,
+                composite_material=selected_laminate,
                 core_material=core_material,
                 tc=tc
             )
@@ -401,6 +548,18 @@ def main():
         tc=170 # mm
     )
 
+    design1_sandwich = Sandwich(
+        composite_material=laminate_4mm,
+        core_material=divinycell_H250,
+        tc=120 # mm
+    )
+
+    design2_sandwich = Sandwich(
+        composite_material=laminate_custom_2,
+        core_material=divinycell_H100,
+        tc=140 # mm
+    )
+
     good_panel = Panel(
                 sandwich=good_sandwich,
                 width=panel_width,
@@ -409,13 +568,28 @@ def main():
                 distributed_load=uniform_load
             )
     
-    security_compression = good_panel.check_against_core_compression_failure()
-    good_panel.check_against_face_failure(True)
-    security_wrinkling = good_panel.check_against_face_wrinkling()
-    security_shear = good_panel.check_against_core_shear_failure()
+    design1_panel = Panel(
+                sandwich=design1_sandwich,
+                width=panel_width,
+                length=panel_length,
+                point_load=point_load,
+                distributed_load=uniform_load
+            )
+    design2_panel = Panel(
+                sandwich=design2_sandwich,
+                width=panel_width,
+                length=panel_length,
+                point_load=point_load,
+                distributed_load=uniform_load
+            )
+    
+    security_compression = design1_panel.check_against_core_compression_failure()
+    design1_panel.check_against_face_failure(print_only_max=True)
+    security_wrinkling = design1_panel.check_against_face_wrinkling()
+    security_shear = design1_panel.check_against_core_shear_failure()
     print(f"Security Compression: {security_compression}")
     print(f"Security Wrinkling: {security_wrinkling}")
     print(f"Security Shear: {security_shear}")
-    print(good_panel)   
+    print(design1_panel)   
 if __name__ == "__main__":
     main()

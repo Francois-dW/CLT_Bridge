@@ -128,7 +128,7 @@ class Panel:
 
         return delta_max, max_shear_force, max_bending_moment
 
-    def check_against_face_failure(self, print_values=False) -> float:
+    def check_against_face_failure(self, print_values=False, print_only_max=False) -> float:
         """
         Calculate the safety factor for face failure due to normal stress.
         
@@ -205,6 +205,11 @@ class Panel:
                 print(f"  Tsai-Hill top: {values_tsai_hill_top[i]}")
                 print(f"  Tsai-Hill bottom: {values_tsai_hill_bottom[i]}")
                 print()
+
+        if print_only_max:
+            print(f"Max Tsai-Wu: {max(values_tsai_wu)}")
+            print(f"Max Tsai-Hill bottom: {max(values_tsai_hill_bottom)}")
+            print(f"Max Tsai-Hill top: {max(values_tsai_hill_top)}")
 
         return values_tsai_wu, failure_tsai_wu, values_tsai_hill_bottom, failure_tsai_hill_bottom, values_tsai_hill_top, failure_tsai_hill_top, failure_max_bottom, failure_max_top
 
